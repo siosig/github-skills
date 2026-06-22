@@ -180,6 +180,93 @@ Pulls remote changes, then pushes local commits. Designed to synchronize the cur
 
 ---
 
+## `/github-auto-repo`
+
+### Synopsis
+
+```
+/github-auto-repo [--private]
+```
+
+### Description
+
+Creates a GitHub repository matching the name of the current directory. The repository name is derived from the directory name with automatic sanitization. Supports both public (default) and private repositories via optional flag.
+
+### Options
+
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `--private` | optional flag | — | Create a private repository (default: public) |
+
+### Behavior
+
+#### Pre-flight Checks
+
+1. **Git repository validation**: Verify `git rev-parse --is-inside-work-tree` succeeds. If not, report error and exit with code 2.
+2. **GitHub authentication**: Run `gh auth status`. If auth fails, report error and exit with code 3.
+
+#### Folder Name Processing
+
+1. **Get directory name**: Extract from `basename $(pwd)`
+2. **Sanitize**:
+   - Replace spaces with hyphens
+   - Remove characters not in `[a-zA-Z0-9_-]`
+   - Convert to lowercase
+   - Limit to 39 characters
+3. **Fallback**: If sanitized name is empty, try parent directory name using same sanitization
+4. **Validate**: If still empty after fallback, report error and exit with code 5
+
+#### Repository Creation
+
+1. **Check for duplicates**: Query `gh repo list --source` and grep for exact name match. If found, report error and exit with code 4.
+2. **Determine visibility**: `--private` present → private; otherwise → public
+3. **Create repository**:
+   - Public: `gh repo create <name> --public --source=. --remote=origin`
+   - Private: `gh repo create <name> --private --source=. --remote=origin`
+   - If creation fails, report error and exit with code 7
+
+#### Branch Management
+
+1. **Ensure main branch**: Verify `main` branch exists (GitHub's default)
+2. **Create develop branch**: `git checkout -b develop`
+3. **Push both branches**: `git push origin main develop`
+   - If push fails, report error and exit with code 7
+
+#### Success Output
+
+```
+✓ Repository created successfully
+  Name: <sanitized_name>
+  Visibility: <public|private>
+  Remote: origin
+  URL: <github_url>
+  Branches: main, develop
+```
+
+### Error Messages
+
+| Exit Code | Condition | Message |
+|-----------|-----------|---------|
+| 2 | Not a git repository | `Error: Not a git repository.` |
+| 3 | GitHub auth failed | `Error: GitHub authentication failed.` |
+| 4 | Repository already exists | `Error: Repository '<name>' already exists on GitHub.` |
+| 5 | Invalid repository name | `Error: Folder name cannot be converted to a valid repository name.` |
+| 7 | Network or push error | `Error: Failed to create repository. Check your permissions or network.` |
+
+### Required Tools
+
+`git`, `gh`, `basename`, `grep`, `sed`, `tr`, `cut`
+
+### Key Behaviors
+
+- Automatically creates both `main` and `develop` branches
+- Does not reuse or overwrite existing repositories
+- Displays sanitized repository name for user confirmation
+- Simple error messages without recovery instructions
+- All operations are atomic (full success or full failure, no partial state)
+
+---
+
 ## Planned Skills
 
 The following skills are in the specification phase and not yet implemented:

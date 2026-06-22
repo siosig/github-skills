@@ -30,6 +30,8 @@ claude plugin uninstall github-skills --yes
 | `/github-push --private` | Push and create a private GitHub repository if origin is missing |
 | `/github-sync` | Pull with rebase, then push |
 | `/github-sync ff` | Pull with fast-forward only, then push |
+| `/github-auto-repo` | Create a public GitHub repository matching the folder name |
+| `/github-auto-repo --private` | Create a private GitHub repository matching the folder name |
 
 ## Requirements
 

@@ -180,6 +180,93 @@
 
 ---
 
+## `/github-auto-repo`
+
+### 書式
+
+```
+/github-auto-repo [--private]
+```
+
+### 説明
+
+カレントディレクトリ名と同じ名前の GitHub リポジトリを作成する。ディレクトリ名は自動的にサニタイズされてリポジトリ名となる。オプションフラグで public（デフォルト）と private の両方に対応。
+
+### オプション
+
+| 引数 | 種別 | デフォルト | 説明 |
+|------|------|-----------|------|
+| `--private` | 任意フラグ | — | private リポジトリを作成する（デフォルト: public） |
+
+### 動作
+
+#### 事前チェック
+
+1. **git リポジトリ検証**: `git rev-parse --is-inside-work-tree` が成功することを確認。失敗した場合はエラーを表示して終了（終了コード 2）。
+2. **GitHub 認証確認**: `gh auth status` を実行。失敗した場合はエラーを表示して終了（終了コード 3）。
+
+#### フォルダ名の処理
+
+1. **ディレクトリ名の取得**: `basename $(pwd)` から取得
+2. **サニタイズ**:
+   - スペースを `-` に変換
+   - `[a-zA-Z0-9_-]` 以外の文字を除去
+   - 小文字に変換
+   - 39文字に切り詰め
+3. **フォールバック**: サニタイズ後の名前が空の場合、親ディレクトリ名を試す（同じサニタイズ処理）
+4. **検証**: フォールバック後も空の場合はエラーを表示して終了（終了コード 5）
+
+#### リポジトリの作成
+
+1. **重複チェック**: `gh repo list --source` で同名リポジトリを検索。見つかった場合はエラーを表示して終了（終了コード 4）。
+2. **可視性の決定**: `--private` あり → private、なし → public
+3. **リポジトリ作成**:
+   - Public: `gh repo create <name> --public --source=. --remote=origin`
+   - Private: `gh repo create <name> --private --source=. --remote=origin`
+   - 失敗した場合はエラーを表示して終了（終了コード 7）
+
+#### ブランチ管理
+
+1. **main ブランチ確認**: main ブランチが存在することを確認（GitHub のデフォルト）
+2. **develop ブランチ作成**: `git checkout -b develop`
+3. **両ブランチを push**: `git push origin main develop`
+   - push 失敗時はエラーを表示して終了（終了コード 7）
+
+#### 成功時の出力
+
+```
+✓ リポジトリが正常に作成されました
+  名前: <sanitized_name>
+  可視性: <public|private>
+  リモート: origin
+  URL: <github_url>
+  ブランチ: main, develop
+```
+
+### エラーメッセージ
+
+| 終了コード | 状態 | メッセージ |
+|-----------|------|-----------|
+| 2 | git リポジトリではない | `Error: Not a git repository.` |
+| 3 | GitHub 認証失敗 | `Error: GitHub authentication failed.` |
+| 4 | リポジトリが既に存在 | `Error: Repository '<name>' already exists on GitHub.` |
+| 5 | 無効なリポジトリ名 | `Error: Folder name cannot be converted to a valid repository name.` |
+| 7 | ネットワーク・push エラー | `Error: Failed to create repository. Check your permissions or network.` |
+
+### 使用ツール
+
+`git`, `gh`, `basename`, `grep`, `sed`, `tr`, `cut`
+
+### 主な特徴
+
+- main と develop の 2つのブランチを自動作成
+- 既存リポジトリの再利用や上書きをしない
+- サニタイズされたリポジトリ名をユーザーに確認させる
+- 回復手順なしのシンプルなエラーメッセージ
+- すべての操作は原子的（完全成功または完全失敗、部分的な状態を残さない）
+
+---
+
 ## 計画中のスキル
 
 以下のスキルは仕様策定中であり、まだ実装されていない:

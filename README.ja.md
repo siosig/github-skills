@@ -30,6 +30,8 @@ claude plugin uninstall github-skills --yes
 | `/github-push --private` | origin が未設定の場合に private リポジトリを自動作成して push する |
 | `/github-sync` | `git pull --rebase` してから push する |
 | `/github-sync ff` | `git pull --ff-only` してから push する |
+| `/github-auto-repo` | 現在のフォルダと同名の public GitHub リポジトリを作成する |
+| `/github-auto-repo --private` | 現在のフォルダと同名の private GitHub リポジトリを作成する |
 
 ## 必要なツール
 
