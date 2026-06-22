@@ -1,0 +1,11 @@
+{
+  "name": "github-skills",
+  "version": "1.0.0",
+  "description": "Git workflow skills for Claude Code: /github-commit, /github-push, /github-sync",
+  "author": {
+    "name": "siosig",
+    "url": "https://github.com/siosig"
+  },
+  "homepage": "https://github.com/siosig/github-skills",
+  "keywords": ["git", "commit", "push", "sync", "workflow"]
+}

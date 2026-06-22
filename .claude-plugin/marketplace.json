@@ -1,0 +1,16 @@
+{
+  "name": "github-skills-local",
+  "owner": {
+    "name": "siosig"
+  },
+  "metadata": {
+    "description": "Local marketplace for installing the github-skills plugin."
+  },
+  "plugins": [
+    {
+      "name": "github-skills",
+      "source": "./",
+      "description": "Git workflow skills for Claude Code: /github-commit, /github-push, /github-sync"
+    }
+  ]
+}
