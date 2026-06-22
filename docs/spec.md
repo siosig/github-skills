@@ -22,6 +22,9 @@ This document describes the complete behavioral specification of all skills prov
 /github-commit [all]
 ```
 
+Optional argument:
+- `all` — Include untracked files in the commit
+
 ### Description
 
 Creates a single Git commit from current changes. By default, stages only tracked file changes (`git add -u`). Passing `all` also stages untracked files (`git add -A`).
@@ -74,18 +77,15 @@ Commit messages are written in **English by default**. Repository-specific rules
 ### Synopsis
 
 ```
-/github-push [--private]
+/github-push [private]
 ```
+
+Optional argument:
+- `private` — Create a private repository (default: public)
 
 ### Description
 
 Pushes the current branch to its remote upstream. If no `origin` remote is configured, automatically creates a GitHub repository named after the current directory and sets it as origin before pushing.
-
-### Options
-
-| Argument | Type | Default | Description |
-|----------|------|---------|-------------|
-| `--private` | optional flag | — | When creating a new repository, create it as private (default: public) |
 
 ### Behavior
 
@@ -147,15 +147,12 @@ If no `origin` remote is configured:
 /github-sync [ff]
 ```
 
+Optional argument:
+- `ff` — Use `--ff-only` instead of `--rebase` for pull
+
 ### Description
 
 Pulls remote changes, then pushes local commits. Designed to synchronize the current branch with its remote counterpart. Push is only executed when pull succeeds.
-
-### Options
-
-| Argument | Type | Default | Description |
-|----------|------|---------|-------------|
-| `ff` | optional keyword | — | Use `--ff-only` instead of `--rebase` for pull |
 
 ### Behavior
 
@@ -185,18 +182,15 @@ Pulls remote changes, then pushes local commits. Designed to synchronize the cur
 ### Synopsis
 
 ```
-/github-auto-repo [--private]
+/github-auto-repo [private]
 ```
+
+Optional argument:
+- `private` — Create a private repository (default: public)
 
 ### Description
 
 Creates a GitHub repository matching the name of the current directory. The repository name is derived from the directory name with automatic sanitization. Supports both public (default) and private repositories via optional flag.
-
-### Options
-
-| Argument | Type | Default | Description |
-|----------|------|---------|-------------|
-| `--private` | optional flag | — | Create a private repository (default: public) |
 
 ### Behavior
 

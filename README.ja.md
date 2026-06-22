@@ -24,14 +24,10 @@ claude plugin uninstall github-skills --yes
 
 | コマンド | 説明 |
 |---------|------|
-| `/github-commit` | 追跡済みファイルの変更をステージしてコミットを作成する |
-| `/github-commit all` | 未追跡ファイルを含む全変更をステージしてコミットを作成する |
-| `/github-push` | 現在のブランチをリモートへ push する（origin が未設定の場合は GitHub リポジトリを自動作成） |
-| `/github-push --private` | origin が未設定の場合に private リポジトリを自動作成して push する |
-| `/github-sync` | `git pull --rebase` してから push する |
-| `/github-sync ff` | `git pull --ff-only` してから push する |
-| `/github-auto-repo` | 現在のフォルダと同名の public GitHub リポジトリを作成する |
-| `/github-auto-repo --private` | 現在のフォルダと同名の private GitHub リポジトリを作成する |
+| `/github-commit [all]` | 追跡済みファイルの変更をステージしてコミットを作成する（`all` で未追跡ファイルも含める） |
+| `/github-push [private]` | 現在のブランチをリモートへ push する（origin 未設定時は GitHub リポジトリを自動作成、`private` で private リポジトリ） |
+| `/github-sync [ff]` | `git pull --rebase` してから push する（`ff` で `--ff-only` を使用） |
+| `/github-auto-repo [private]` | 現在のフォルダと同名の GitHub リポジトリを作成する（`private` で private リポジトリ） |
 
 ## 必要なツール
 

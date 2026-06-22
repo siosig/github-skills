@@ -2,9 +2,9 @@
 name: github-push
 description: >
   Push the current branch to upstream via git push.
-  Invoked when user calls `/github-push` or `/github-push --private`.
+  Invoked when user calls `/github-push` or `/github-push private`.
   If origin is not configured, automatically create a GitHub repository named after the current folder and set it as origin before pushing.
-  With `--private` flag, create a private repository (default: public).
+  With `private` argument, create a private repository (default: public).
   If upstream is not configured, push with `--set-upstream origin <branch>`.
   Do not force-push on non-fast-forward rejection.
 allowed-tools: Bash(git push:*), Bash(git branch:*), Bash(git remote:*), Bash(gh:*), Bash(basename:*), Bash(tr:*), Bash(sed:*), Bash(cut:*)

@@ -24,14 +24,10 @@ claude plugin uninstall github-skills --yes
 
 | Command | Description |
 |---------|-------------|
-| `/github-commit` | Stage tracked changes and create a commit |
-| `/github-commit all` | Stage all changes (including untracked files) and create a commit |
-| `/github-push` | Push the current branch to remote (auto-creates GitHub repo if no origin is set) |
-| `/github-push --private` | Push and create a private GitHub repository if origin is missing |
-| `/github-sync` | Pull with rebase, then push |
-| `/github-sync ff` | Pull with fast-forward only, then push |
-| `/github-auto-repo` | Create a public GitHub repository matching the folder name |
-| `/github-auto-repo --private` | Create a private GitHub repository matching the folder name |
+| `/github-commit [all]` | Stage tracked changes and create a commit (add `all` to include untracked files) |
+| `/github-push [private]` | Push the current branch to remote (add `private` to create private repo if origin is missing) |
+| `/github-sync [ff]` | Pull with rebase, then push (add `ff` to use fast-forward only) |
+| `/github-auto-repo [private]` | Create a GitHub repository matching the folder name (add `private` for private repo) |
 
 ## Requirements
 

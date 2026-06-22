@@ -1,13 +1,13 @@
 ---
 name: github-auto-repo
-description: Create a GitHub repository with the same name as the current folder. Use `--private` for private repository; default is public.
+description: Create a GitHub repository with the same name as the current folder. Use `private` for private repository; default is public.
 allowed-tools: Bash(git:*), Bash(gh:*), Bash(grep:*), Bash(basename:*), Bash(pwd:*)
 user-invocable: true
 ---
 
 ## Context
 
-- Arguments: `$ARGUMENTS` (empty for public, `--private` for private)
+- Arguments: `$ARGUMENTS` (empty for public, `private` for private)
 - Current folder: !`basename $(pwd)`
 - Git status: !`git rev-parse --is-inside-work-tree 2>/dev/null && echo "valid" || echo "invalid"`
 - Authentication: !`gh auth status 2>&1 | head -1`
@@ -78,7 +78,7 @@ Determine repository visibility from arguments:
 
 ```bash
 visibility="public"
-if echo "$ARGUMENTS" | grep -q "\--private"; then
+if echo "$ARGUMENTS" | grep -q "private"; then
   visibility="private"
 fi
 ```
@@ -203,7 +203,7 @@ $ /github-auto-repo
 
 ```bash
 $ cd secret-project
-$ /github-auto-repo --private
+$ /github-auto-repo private
 ✓ Repository created successfully
   Name: secret-project
   Visibility: private
