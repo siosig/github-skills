@@ -1,44 +1,44 @@
 ---
 name: github-sync
 description: >
-  git pull してから git push する同期操作を行う。
-  ユーザーが `/github-sync` または `/github-sync ff` と呼び出した場合に使用する。
-  デフォルトは --rebase、`ff` 指定時は --ff-only で pull する。
-  pull が失敗した場合は push を実行しない。
+  Perform a git pull followed by git push synchronization operation.
+  Invoked when user calls `/github-sync` or `/github-sync ff`.
+  Default is `--rebase` for pull; if `ff` is specified, use `--ff-only`.
+  If pull fails, do not execute push.
 allowed-tools: Bash(git pull:*), Bash(git push:*), Bash(git branch:*), Bash(git status:*), Bash(git remote:*)
 user-invocable: true
 ---
 
-## コンテキスト
+## Context
 
-- 引数: `$ARGUMENTS`
-- 現在のブランチ: !`git branch --show-current`
-- リモート設定: !`git remote -v`
-- 現在の状態: !`git status -sb`
+- Arguments: `$ARGUMENTS`
+- Current branch: !`git branch --show-current`
+- Remote configuration: !`git remote -v`
+- Current status: !`git status -sb`
 
-## タスク
+## Task
 
-リモートの変更を取り込んでから、ローカルのコミットを push する。
+Pull remote changes, then push local commits.
 
-### pull の実行
+### Execute Pull
 
-引数 `$ARGUMENTS` を確認する:
-- `ff` が含まれる → `git pull --ff-only`
-- 引数なし（または `ff` 以外） → `git pull --rebase`
+Check argument `$ARGUMENTS`:
+- `ff` is present -> `git pull --ff-only`
+- No argument (or argument other than `ff`) -> `git pull --rebase`
 
-### pull の結果に応じた処理
+### Handle Pull Result
 
-**pull 成功した場合**: 続けて `git push` を実行する。
+**If pull succeeds**: proceed to execute `git push`.
 
-**pull が失敗した場合**（コンフリクト、non-fast-forward 拒否 等）:
-- `git push` を**実行しない**
-- エラーの内容をユーザーに伝える
-- コンフリクトの場合: `git rebase --abort` または手動解消の方法を案内する
-- `--ff-only` 失敗の場合: `--rebase` の使用か手動 merge を案内する
+**If pull fails** (conflict, non-fast-forward rejection, etc.):
+- **Do not** execute `git push`
+- Report the error to the user
+- If conflict occurred: suggest `git rebase --abort` or manual conflict resolution
+- If `--ff-only` failed: suggest using `--rebase` or manual merge
 
-### push の挙動
+### Push Behavior
 
-pull 成功後の push は `/github-push` と同様:
-- upstream 設定済み → `git push`
-- upstream 未設定 → `git push --set-upstream origin <current-branch>`
-- 強制 push は行わない
+After successful pull, push behavior is the same as `/github-push`:
+- Upstream configured -> `git push`
+- Upstream not configured -> `git push --set-upstream origin <current-branch>`
+- Do not force-push

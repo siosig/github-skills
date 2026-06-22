@@ -1,22 +1,8 @@
 # github-skills
 
-Claude Code plugin providing git workflow skills: `/github-commit`, `/github-push`, `/github-sync`.
+Claude Code plugin that provides Git workflow automation skills.
 
-## Skills
-
-| Command | Description |
-|---------|-------------|
-| `/github-commit` | 追跡済みファイルの変更をコミット（`git add -u`） |
-| `/github-commit all` | 未追跡ファイルを含む全変更をコミット（`git add -A`） |
-| `/github-push` | 現在のブランチを upstream へ push |
-| `/github-sync` | `git pull --rebase` してから push |
-| `/github-sync ff` | `git pull --ff-only` してから push |
-
-## Rules
-
-- `/github-commit` はコミットメッセージに `Co-Authored-By:` を含めない
-- `/github-push` は non-fast-forward 拒否時に強制 push しない
-- `/github-sync` は pull が失敗した場合 push を実行しない
+> Japanese version: [README.ja.md](README.ja.md)
 
 ## Installation
 
@@ -26,10 +12,38 @@ cd github-skills
 ./install_claude_plugin.sh
 ```
 
-Claude Code を再起動して有効化する。
+Restart Claude Code to activate.
 
 ## Uninstall
 
 ```bash
 claude plugin uninstall github-skills --yes
 ```
+
+## Skills
+
+| Command | Description |
+|---------|-------------|
+| `/github-commit` | Stage tracked changes and create a commit |
+| `/github-commit all` | Stage all changes (including untracked files) and create a commit |
+| `/github-push` | Push the current branch to remote (auto-creates GitHub repo if no origin is set) |
+| `/github-push --private` | Push and create a private GitHub repository if origin is missing |
+| `/github-sync` | Pull with rebase, then push |
+| `/github-sync ff` | Pull with fast-forward only, then push |
+
+## Requirements
+
+- `git`
+- `gh` CLI — required only when `/github-push` needs to auto-create a GitHub repository (`gh auth login`)
+
+## Key Behaviors
+
+- `/github-commit` never includes `Co-Authored-By:` in commit messages
+- `/github-push` never force-pushes on non-fast-forward rejection
+- `/github-push` auto-creates a GitHub repository when no `origin` remote is configured
+- `/github-sync` skips push if pull fails
+
+## Documentation
+
+- [Behavioral Specification (English)](docs/spec.md)
+- [動作仕様書（日本語）](docs/spec.ja.md)

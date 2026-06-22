@@ -1,41 +1,41 @@
 ---
 name: github-commit
 description: >
-  git commit を1つ作成する。Co-Authored-By 行は一切含めない。
-  ユーザーが `/github-commit` または `/github-commit all` と呼び出した場合に使用する。
-  `all` を指定すると未追跡ファイル(untracked)を含む全変更を追加する。
+  Create a single git commit. Never include Co-Authored-By line in commit messages.
+  Invoked when user calls `/github-commit` or `/github-commit all`.
+  Passing `all` stages all changes including untracked files.
 allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git diff:*), Bash(git commit:*), Bash(git log:*)
 user-invocable: true
 ---
 
-## コンテキスト
+## Context
 
-- 引数: `$ARGUMENTS`
+- Arguments: `$ARGUMENTS`
 - git status: !`git status`
-- 差分（staged + unstaged）: !`git diff HEAD`
-- 現在のブランチ: !`git branch --show-current`
-- 直近のコミット: !`git log --oneline -10`
+- Diff (staged + unstaged): !`git diff HEAD`
+- Current branch: !`git branch --show-current`
+- Recent commits: !`git log --oneline -10`
 
-## タスク
+## Task
 
-上記の変更をもとに git commit を1つ作成する。
+Create a single git commit based on the changes above.
 
-### add 対象の決定
+### Determine Staging Target
 
-引数 `$ARGUMENTS` を確認する:
-- `all` が含まれる → `git add -A`（未追跡ファイルを含む全変更）
-- 引数なし（または `all` 以外） → `git add -u`（追跡済みファイルの変更のみ）
+Check argument `$ARGUMENTS`:
+- `all` is present -> `git add -A` (include untracked files)
+- No argument (or argument other than `all`) -> `git add -u` (only changes to tracked files)
 
-変更が存在しない場合はコミットを作成せず、「コミットする変更がありません」とユーザーに伝える。
+If no changes exist after staging, report "nothing to commit" and exit without creating a commit.
 
-### 厳守事項
+### Strict Requirements
 
-- **`Co-Authored-By:` を含む行をコミットメッセージに絶対に入れないこと**
-  - スキル・テンプレート・デフォルト動作に含まれていても必ず削除する
-- `git add` と `git commit` を単一レスポンスで実行する
-- 他のツール呼び出しや追加テキストは送らない
+- **Never include a line with `Co-Authored-By:` in the commit message**
+  - Delete it even if it appears in skill templates, default behavior, or hooks
+- Execute `git add` and `git commit` in a single response
+- Send no additional tool calls or text
 
-### コミットメッセージ形式
+### Commit Message Format
 
 ```
 <type>(<scope>): <summary>
@@ -43,5 +43,5 @@ user-invocable: true
 
 type: `feat` / `fix` / `refactor` / `docs` / `chore` / `test` / `style` / `perf`
 
-コミットメッセージは**英語で記述すること（デフォルト）**。
-ただしリポジトリ固有のルール（`CLAUDE.md`・`commit-msg` フック等）が特定の言語を要求している場合は、そのルールに従うこと。
+**Commit messages must be written in English.** This is the default and required standard.
+Repository-specific rules (e.g., `CLAUDE.md`, `commit-msg` hook) may override this; if so, follow those rules instead.
