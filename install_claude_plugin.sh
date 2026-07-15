@@ -20,8 +20,22 @@ _require git   "https://git-scm.com/downloads"
 _require claude "https://claude.ai/code"
 
 # ── 2. Register marketplace ───────────────────────────────────────────────────
+KNOWN_MARKETPLACES="${HOME}/.claude/plugins/known_marketplaces.json"
+REGISTERED_PATH=""
+if [[ -f "${KNOWN_MARKETPLACES}" ]] && command -v jq &>/dev/null; then
+  REGISTERED_PATH="$(jq -r --arg name "${MARKETPLACE_NAME}" '.[$name].source.path // empty' "${KNOWN_MARKETPLACES}")"
+fi
+
 if claude plugin marketplace list 2>/dev/null | grep -q "^  ❯ ${MARKETPLACE_NAME}"; then
-  echo "✓ marketplace '${MARKETPLACE_NAME}': already registered"
+  if [[ -n "${REGISTERED_PATH}" && "${REGISTERED_PATH}" != "${PLUGIN_DIR}" ]]; then
+    echo "→ marketplace '${MARKETPLACE_NAME}' points at stale path: ${REGISTERED_PATH}"
+    echo "→ re-registering marketplace '${MARKETPLACE_NAME}': ${PLUGIN_DIR}"
+    claude plugin marketplace remove "${MARKETPLACE_NAME}"
+    claude plugin marketplace add "${PLUGIN_DIR}"
+    echo "✓ marketplace '${MARKETPLACE_NAME}': re-registered"
+  else
+    echo "✓ marketplace '${MARKETPLACE_NAME}': already registered"
+  fi
 else
   echo "→ registering marketplace '${MARKETPLACE_NAME}': ${PLUGIN_DIR}"
   claude plugin marketplace add "${PLUGIN_DIR}"
