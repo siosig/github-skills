@@ -28,6 +28,7 @@ claude plugin uninstall github-skills --yes
 | `/github-push [private]` | Push the current branch to remote (add `private` to create private repo if origin is missing) |
 | `/github-sync [ff]` | Pull with rebase, then push (add `ff` to use fast-forward only) |
 | `/github-auto-repo [private]` | Create a GitHub repository matching the folder name (add `private` for private repo) |
+| `/github-main-merge` | Merge the current branch into `main` and push it to `origin`, with no tag created |
 
 ## Requirements
 
@@ -40,6 +41,7 @@ claude plugin uninstall github-skills --yes
 - `/github-push` never force-pushes on non-fast-forward rejection
 - `/github-push` auto-creates a GitHub repository when no `origin` remote is configured
 - `/github-sync` skips push if pull fails
+- `/github-main-merge` refuses to run with uncommitted changes, never force-pushes, and returns to the original branch after a successful run
 
 ## Documentation
 
