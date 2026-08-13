@@ -25,10 +25,11 @@ claude plugin uninstall github-skills --yes
 | Command | Description |
 |---------|-------------|
 | `/github-commit [all]` | Stage tracked changes and create a commit (add `all` to include untracked files) |
+| `/github-commit <submodule> [all]` | Create the commit inside the given submodule instead of the current repository |
 | `/github-push [private]` | Push the current branch to remote (add `private` to create private repo if origin is missing) |
 | `/github-sync [ff]` | Pull with rebase, then push (add `ff` to use fast-forward only) |
 | `/github-auto-repo [private]` | Create a GitHub repository matching the folder name (add `private` for private repo) |
-| `/github-main-merge` | Merge the current branch into `main` and push it to `origin`, with no tag created |
+| `/github-main-merge` | Merge the current branch into `main` (or `master` if the repository has no `main`) and push it to `origin`, with no tag created |
 
 ## Requirements
 
@@ -38,10 +39,11 @@ claude plugin uninstall github-skills --yes
 ## Key Behaviors
 
 - `/github-commit` never includes `Co-Authored-By:` in commit messages
+- `/github-commit <submodule>` commits inside the submodule only; the parent repository's gitlink is left for a separate `/github-commit` run
 - `/github-push` never force-pushes on non-fast-forward rejection
 - `/github-push` auto-creates a GitHub repository when no `origin` remote is configured
 - `/github-sync` skips push if pull fails
-- `/github-main-merge` refuses to run with uncommitted changes, never force-pushes, and returns to the original branch after a successful run
+- `/github-main-merge` targets `main` when it exists and falls back to `master` otherwise; it refuses to run with uncommitted changes, never force-pushes, and returns to the original branch after a successful run
 
 ## Documentation
 

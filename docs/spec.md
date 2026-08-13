@@ -20,29 +20,52 @@ This document describes the complete behavioral specification of all skills prov
 
 ```
 /github-commit [all]
+/github-commit <submodule> [all]
 ```
 
-Optional argument:
+Optional arguments:
 - `all` — Include untracked files in the commit
+- `<submodule>` — Path of a submodule; the commit is created inside that submodule
 
 ### Description
 
 Creates a single Git commit from current changes. By default, stages only tracked file changes (`git add -u`). Passing `all` also stages untracked files (`git add -A`).
+
+When the first argument is anything other than `all`, it is treated as a submodule path and the commit is created inside that submodule (`git -C <submodule>`) instead of the current repository.
 
 ### Options
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
 | `all` | optional keyword | — | Include untracked files in the commit (`git add -A`) |
+| `<submodule>` | optional path (1st token) | — | Commit inside this submodule; may be followed by `all` |
 
 ### Behavior
 
-1. Inspect `$ARGUMENTS` to determine staging strategy:
-   - If `all` is present → `git add -A`
-   - Otherwise → `git add -u`
-2. If no changes exist after staging, report "nothing to commit" and exit without creating a commit.
-3. Analyze the diff (`git diff HEAD`) and recent commit history (`git log --oneline -10`) to compose a commit message.
-4. Execute `git add` and `git commit` in a single step.
+1. Split `$ARGUMENTS` into whitespace-separated tokens and resolve the mode:
+
+   | Arguments | Mode | Target repository | Staging |
+   |-----------|------|-------------------|---------|
+   | (none) | repository | current | `git add -u` |
+   | `all` | repository | current | `git add -A` |
+   | `<submodule>` | submodule | `<submodule>` | `git add -u` |
+   | `<submodule> all` | submodule | `<submodule>` | `git add -A` |
+
+   A first token of `all` always means repository mode. Any other first token is a submodule path (trailing `/` stripped).
+
+2. **Repository mode**
+   1. Stage per the table above.
+   2. If no changes exist after staging, report "nothing to commit" and exit without creating a commit.
+   3. Analyze the diff (`git diff HEAD`) and recent commit history (`git log --oneline -10`) to compose a commit message.
+   4. Execute `git add` and `git commit` in a single step.
+
+3. **Submodule mode**
+   1. Validate the path with `git submodule status -- <submodule>`. If it exits non-zero or prints nothing, report an error and exit.
+   2. Collect the submodule's own state (`git -C <submodule>` for `status`, `diff HEAD`, `branch --show-current`, `log --oneline -10`) — the parent repository's context does not describe it.
+   3. If the submodule is in detached HEAD state, warn but proceed.
+   4. Stage and commit inside the submodule with `git -C <submodule>`; never `cd`.
+   5. If no changes exist after staging, report "nothing to commit in `<submodule>`" and exit without creating a commit.
+   6. Do not stage or commit the parent repository's gitlink. Report that the gitlink is now modified and that `/github-commit` must be run in the parent repository to record it.
 
 ### Commit Message Format
 
@@ -62,6 +85,7 @@ Commit messages are written in **English by default**. Repository-specific rules
 
 - **Never** include `Co-Authored-By:` in commit messages, regardless of any template or default behavior.
 - Does not push after committing.
+- Creates exactly one commit. In submodule mode, the parent repository is left untouched.
 
 ### Error Handling
 
@@ -69,6 +93,8 @@ Commit messages are written in **English by default**. Repository-specific rules
 |-----------|----------|
 | No staged changes | Report "nothing to commit", exit without creating commit |
 | `git commit` fails | Surface git error message to user |
+| First argument is not `all` and not a registered submodule | Report `Error: '<submodule>' is not a git submodule of this repository.`, exit without creating commit |
+| Submodule is in detached HEAD | Warn, but create the commit |
 
 ---
 

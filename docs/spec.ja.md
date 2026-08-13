@@ -20,23 +20,52 @@
 
 ```
 /github-commit [all]
+/github-commit <submodule> [all]
 ```
 
 任意引数：
 - `all` — 未追跡ファイルを含む全変更をステージする（`git add -A`）
+- `<submodule>` — submodule のパス。その submodule 内でコミットを作成する
 
 ### 説明
 
 現在の変更から git コミットを1つ作成する。デフォルトでは追跡済みファイルのみをステージ（`git add -u`）する。
 
+第1引数が `all` 以外の場合はそれを submodule のパスとみなし、カレントリポジトリではなくその submodule 内（`git -C <submodule>`）でコミットを作成する。
+
+### オプション
+
+| 引数 | 種別 | 既定 | 説明 |
+|------|------|------|------|
+| `all` | 任意キーワード | — | 未追跡ファイルも含めてコミットする（`git add -A`） |
+| `<submodule>` | 任意パス（第1トークン） | — | 指定 submodule 内でコミットする。後ろに `all` を付けられる |
+
 ### 動作
 
-1. `$ARGUMENTS` を確認してステージ戦略を決定する:
-   - `all` が含まれる → `git add -A`
-   - それ以外 → `git add -u`
-2. ステージ後に変更が存在しない場合は「コミットする変更がありません」と報告してコミットを作成せずに終了する。
-3. 差分（`git diff HEAD`）と直近のコミット履歴（`git log --oneline -10`）を分析してコミットメッセージを生成する。
-4. `git add` と `git commit` を単一ステップで実行する。
+1. `$ARGUMENTS` を空白区切りのトークンに分割し、モードを決定する:
+
+   | 引数 | モード | 対象リポジトリ | ステージ |
+   |------|--------|----------------|----------|
+   | （なし） | リポジトリ | カレント | `git add -u` |
+   | `all` | リポジトリ | カレント | `git add -A` |
+   | `<submodule>` | submodule | `<submodule>` | `git add -u` |
+   | `<submodule> all` | submodule | `<submodule>` | `git add -A` |
+
+   第1トークンが `all` の場合は常にリポジトリモード。それ以外は submodule パスとして扱う（末尾の `/` は除去）。
+
+2. **リポジトリモード**
+   1. 上表に従ってステージする。
+   2. ステージ後に変更が存在しない場合は「コミットする変更がありません」と報告してコミットを作成せずに終了する。
+   3. 差分（`git diff HEAD`）と直近のコミット履歴（`git log --oneline -10`）を分析してコミットメッセージを生成する。
+   4. `git add` と `git commit` を単一ステップで実行する。
+
+3. **submodule モード**
+   1. `git submodule status -- <submodule>` でパスを検証する。非ゼロ終了または出力が空ならエラーを表示して終了する。
+   2. submodule 自身の状態を収集する（`git -C <submodule>` で `status` / `diff HEAD` / `branch --show-current` / `log --oneline -10`）。親リポジトリのコンテキストは submodule の状態を表さないため必須。
+   3. submodule が detached HEAD の場合は警告を表示するが処理は継続する。
+   4. `git -C <submodule>` でステージとコミットを行う。`cd` は使わない。
+   5. ステージ後に変更が存在しない場合は「`<submodule>` にコミットする変更がありません」と報告してコミットを作成せずに終了する。
+   6. 親リポジトリの gitlink はステージもコミットもしない。gitlink が変更済みになったことと、記録するには親リポジトリで `/github-commit` を実行する必要があることを報告する。
 
 ### コミットメッセージ形式
 
@@ -56,6 +85,7 @@
 
 - `Co-Authored-By:` をコミットメッセージに**絶対に含めない**。テンプレートやデフォルト動作に含まれていても削除する。
 - コミット後に push しない。
+- 作成するコミットは常に1つ。submodule モードでも親リポジトリには一切変更を加えない。
 
 ### エラー処理
 
@@ -63,6 +93,8 @@
 |------|------|
 | ステージ後に変更なし | 「コミットする変更がありません」と報告して終了 |
 | `git commit` 失敗 | git のエラーメッセージをそのまま表示 |
+| 第1引数が `all` でも登録済み submodule でもない | `Error: '<submodule>' is not a git submodule of this repository.` を表示して終了 |
+| submodule が detached HEAD | 警告を表示した上でコミットを作成する |
 
 ---
 
