@@ -171,27 +171,55 @@ If no `origin` remote is configured:
 
 ```
 /github-sync [ff]
+/github-sync <submodule> [ff]
 ```
 
-Optional argument:
+Optional arguments:
 - `ff` — Use `--ff-only` instead of `--rebase` for pull
+- `<submodule>` — Path of a submodule; the synchronization runs inside that submodule
 
 ### Description
 
 Pulls remote changes, then pushes local commits. Designed to synchronize the current branch with its remote counterpart. Push is only executed when pull succeeds.
 
+When the first argument is anything other than `ff`, it is treated as a submodule path and the synchronization runs inside that submodule (`git -C <submodule>`) instead of the current repository.
+
+### Options
+
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `ff` | optional keyword | — | Use `git pull --ff-only` instead of `git pull --rebase` |
+| `<submodule>` | optional path (1st token) | — | Synchronize this submodule; may be followed by `ff` |
+
 ### Behavior
 
-1. **Pull**:
-   - `ff` present → `git pull --ff-only`
-   - Otherwise → `git pull --rebase`
-2. **If pull succeeds**: Execute push (same logic as `/github-push` when origin exists):
-   - Upstream configured → `git push`
-   - Upstream not configured → `git push --set-upstream origin <branch>`
-3. **If pull fails**: Do **not** push. Report the error and provide recovery guidance:
-   - Conflict during rebase → suggest `git rebase --abort` or manual conflict resolution
-   - `--ff-only` rejected → suggest using `--rebase` or manual merge
-4. **Never force-push**.
+1. Split `$ARGUMENTS` into whitespace-separated tokens and resolve the mode:
+
+   | Arguments | Mode | Target repository | Pull |
+   |-----------|------|-------------------|------|
+   | (none) | repository | current | `git pull --rebase` |
+   | `ff` | repository | current | `git pull --ff-only` |
+   | `<submodule>` | submodule | `<submodule>` | `git pull --rebase` |
+   | `<submodule> ff` | submodule | `<submodule>` | `git pull --ff-only` |
+
+   A first token of `ff` always means repository mode. Any other first token is a submodule path (trailing `/` stripped).
+
+2. **Repository mode**
+   1. **Pull** per the table above.
+   2. **If pull succeeds**: Execute push (same logic as `/github-push` when origin exists):
+      - Upstream configured → `git push`
+      - Upstream not configured → `git push --set-upstream origin <branch>`
+   3. **If pull fails**: Do **not** push. Report the error and provide recovery guidance:
+      - Conflict during rebase → suggest `git rebase --abort` or manual conflict resolution
+      - `--ff-only` rejected → suggest using `--rebase` or manual merge
+   4. **Never force-push**.
+
+3. **Submodule mode**
+   1. Validate the path with `git submodule status -- <submodule>`. If it exits non-zero or prints nothing, report an error and exit.
+   2. If the submodule is in detached HEAD state (`git -C <submodule> branch --show-current` prints nothing), report an error and exit without pulling or pushing — there is no branch to pull into or push.
+   3. If the submodule has no `origin` remote, report an error and exit. Unlike `/github-push`, no GitHub repository is ever auto-created in submodule mode.
+   4. Pull and push inside the submodule with `git -C <submodule>`; never `cd`. Pull failure suppresses push exactly as in repository mode.
+   5. Do not stage or commit the parent repository's gitlink. If the submodule's HEAD moved, report that the gitlink is now modified and that `/github-commit` must be run in the parent repository to record it.
 
 ### Error Handling
 
@@ -200,6 +228,9 @@ Pulls remote changes, then pushes local commits. Designed to synchronize the cur
 | Pull conflict | Report conflict, suggest `git rebase --abort` |
 | `--ff-only` rejected | Suggest `git pull --rebase` |
 | Push fails | Surface git error |
+| First argument is not `ff` and not a registered submodule | Report `Error: '<submodule>' is not a git submodule of this repository.`, exit without syncing |
+| Submodule is in detached HEAD | Report error, exit without pulling or pushing |
+| Submodule has no `origin` remote | Report error, exit without pulling or pushing |
 
 ---
 

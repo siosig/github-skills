@@ -28,6 +28,7 @@ claude plugin uninstall github-skills --yes
 | `/github-commit <submodule> [all]` | カレントリポジトリではなく指定した submodule 内でコミットを作成する |
 | `/github-push [private]` | 現在のブランチをリモートへ push する（origin 未設定時は GitHub リポジトリを自動作成、`private` で private リポジトリ） |
 | `/github-sync [ff]` | `git pull --rebase` してから push する（`ff` で `--ff-only` を使用） |
+| `/github-sync <submodule> [ff]` | 指定した submodule 内で pull → push の同期を実行する |
 | `/github-auto-repo [private]` | 現在のフォルダと同名の GitHub リポジトリを作成する（`private` で private リポジトリ） |
 | `/github-main-merge` | 現在のブランチを `main`（`main` がなければ `master`）へマージして `origin` へ push する（タグは作成しない） |
 
@@ -43,6 +44,7 @@ claude plugin uninstall github-skills --yes
 - `/github-push` は non-fast-forward 拒否時に強制 push しない
 - `/github-push` は `origin` リモートが未設定の場合、フォルダ名と同名の GitHub リポジトリを自動作成する
 - `/github-sync` は pull が失敗した場合、push を実行しない
+- `/github-sync <submodule>` は submodule が detached HEAD または `origin` 未設定の場合は実行を拒否し、リモートの自動作成も行わない
 - `/github-main-merge` はマージ先として `main` を優先し、`main` がないリポジトリでは `master` を使う。未コミットの変更がある場合は実行を拒否し、強制 push を行わず、成功後は元のブランチへ復帰する
 
 ## ドキュメント

@@ -171,27 +171,55 @@
 
 ```
 /github-sync [ff]
+/github-sync <submodule> [ff]
 ```
 
 任意引数：
 - `ff` — pull を `--rebase` の代わりに `--ff-only` で実行する
+- `<submodule>` — submodule のパス。その submodule 内で同期を実行する
 
 ### 説明
 
 リモートの変更を取り込んでからローカルのコミットを push する。pull が成功した場合のみ push を実行する。
 
+第1引数が `ff` 以外の場合はそれを submodule のパスとみなし、カレントリポジトリではなくその submodule 内（`git -C <submodule>`）で同期を実行する。
+
+### オプション
+
+| 引数 | 種別 | 既定 | 説明 |
+|------|------|------|------|
+| `ff` | 任意キーワード | — | pull を `git pull --ff-only` で実行する（既定は `--rebase`） |
+| `<submodule>` | 任意パス（第1トークン） | — | 指定 submodule 内で同期する。後ろに `ff` を付けられる |
+
 ### 動作
 
-1. **pull の実行**:
-   - `ff` あり → `git pull --ff-only`
-   - なし → `git pull --rebase`
-2. **pull が成功した場合**: push を実行する（origin 設定済みの `/github-push` と同じロジック）:
-   - upstream 設定済み → `git push`
-   - upstream 未設定 → `git push --set-upstream origin <branch>`
-3. **pull が失敗した場合**: push を**実行しない**。エラーを報告して復旧方法を案内する:
-   - rebase 中のコンフリクト → `git rebase --abort` または手動解消を案内
-   - `--ff-only` が拒否された場合 → `--rebase` の使用か手動 merge を案内
-4. **強制 push しない**。
+1. `$ARGUMENTS` を空白区切りのトークンに分割し、モードを決定する:
+
+   | 引数 | モード | 対象リポジトリ | pull |
+   |------|--------|----------------|------|
+   | （なし） | リポジトリ | カレント | `git pull --rebase` |
+   | `ff` | リポジトリ | カレント | `git pull --ff-only` |
+   | `<submodule>` | submodule | `<submodule>` | `git pull --rebase` |
+   | `<submodule> ff` | submodule | `<submodule>` | `git pull --ff-only` |
+
+   第1トークンが `ff` の場合は常にリポジトリモード。それ以外は submodule パスとして扱う（末尾の `/` は除去）。
+
+2. **リポジトリモード**
+   1. 上表に従って **pull を実行**する。
+   2. **pull が成功した場合**: push を実行する（origin 設定済みの `/github-push` と同じロジック）:
+      - upstream 設定済み → `git push`
+      - upstream 未設定 → `git push --set-upstream origin <branch>`
+   3. **pull が失敗した場合**: push を**実行しない**。エラーを報告して復旧方法を案内する:
+      - rebase 中のコンフリクト → `git rebase --abort` または手動解消を案内
+      - `--ff-only` が拒否された場合 → `--rebase` の使用か手動 merge を案内
+   4. **強制 push しない**。
+
+3. **submodule モード**
+   1. `git submodule status -- <submodule>` でパスを検証する。非ゼロ終了または出力が空ならエラーを表示して終了する。
+   2. submodule が detached HEAD（`git -C <submodule> branch --show-current` が空）の場合、pull/push の対象ブランチが存在しないため、pull も push も実行せずエラーを表示して終了する。
+   3. submodule に `origin` リモートがない場合はエラーを表示して終了する。`/github-push` と異なり、submodule モードでは GitHub リポジトリを自動作成しない。
+   4. `git -C <submodule>` で pull と push を実行する。`cd` は使わない。pull 失敗時に push を実行しない点はリポジトリモードと同じ。
+   5. 親リポジトリの gitlink はステージもコミットもしない。submodule の HEAD が移動した場合は、gitlink が変更済みになったことと、記録するには親リポジトリで `/github-commit` を実行する必要があることを報告する。
 
 ### エラー処理
 
@@ -200,6 +228,9 @@
 | pull コンフリクト | コンフリクトを報告して `git rebase --abort` を案内 |
 | `--ff-only` 拒否 | `git pull --rebase` または手動 merge を案内 |
 | push 失敗 | git のエラーメッセージをそのまま表示 |
+| 第1引数が `ff` でも登録済み submodule でもない | `Error: '<submodule>' is not a git submodule of this repository.` を表示して終了 |
+| submodule が detached HEAD | エラーを表示し、pull も push も実行せず終了 |
+| submodule に `origin` リモートがない | エラーを表示し、pull も push も実行せず終了 |
 
 ---
 
