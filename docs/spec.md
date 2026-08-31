@@ -170,41 +170,51 @@ If no `origin` remote is configured:
 ### Synopsis
 
 ```
-/github-sync [ff]
-/github-sync <submodule> [ff]
+/github-sync [ff] [commit]
+/github-sync <submodule> [ff] [commit]
 ```
 
-Optional arguments:
+Optional arguments (keywords may appear in any order):
 - `ff` — Use `--ff-only` instead of `--rebase` for pull
+- `commit` — Run `git add -A` and create a commit before synchronizing
 - `<submodule>` — Path of a submodule; the synchronization runs inside that submodule
 
 ### Description
 
 Pulls remote changes, then pushes local commits. Designed to synchronize the current branch with its remote counterpart. Push is only executed when pull succeeds.
 
-When the first argument is anything other than `ff`, it is treated as a submodule path and the synchronization runs inside that submodule (`git -C <submodule>`) instead of the current repository.
+Any argument that is neither `ff` nor `commit` is treated as a submodule path, and the whole operation runs inside that submodule (`git -C <submodule>`) instead of the current repository.
 
 ### Options
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
 | `ff` | optional keyword | — | Use `git pull --ff-only` instead of `git pull --rebase` |
-| `<submodule>` | optional path (1st token) | — | Synchronize this submodule; may be followed by `ff` |
+| `commit` | optional keyword | — | `git add -A` and commit before pulling |
+| `<submodule>` | optional path (1st non-keyword token) | — | Synchronize this submodule |
 
 ### Behavior
 
-1. Split `$ARGUMENTS` into whitespace-separated tokens and resolve the mode:
+1. Split `$ARGUMENTS` into whitespace-separated tokens. `ff` and `commit` are reserved keywords recognized in any position; the first token that is neither is the submodule path (trailing `/` stripped). Absent a submodule path, the target is the current repository.
 
-   | Arguments | Mode | Target repository | Pull |
-   |-----------|------|-------------------|------|
-   | (none) | repository | current | `git pull --rebase` |
-   | `ff` | repository | current | `git pull --ff-only` |
-   | `<submodule>` | submodule | `<submodule>` | `git pull --rebase` |
-   | `<submodule> ff` | submodule | `<submodule>` | `git pull --ff-only` |
+   | Arguments | Target | Commit first | Pull |
+   |-----------|--------|--------------|------|
+   | (none) | current repository | no | `--rebase` |
+   | `ff` | current repository | no | `--ff-only` |
+   | `commit` | current repository | yes | `--rebase` |
+   | `commit ff` | current repository | yes | `--ff-only` |
+   | `<submodule>` | `<submodule>` | no | `--rebase` |
+   | `<submodule> commit ff` | `<submodule>` | yes | `--ff-only` |
 
-   A first token of `ff` always means repository mode. Any other first token is a submodule path (trailing `/` stripped).
+2. **Commit step** (only when `commit` was passed), executed before the pull in the target repository:
+   1. Run `git add -A`, including untracked files.
+   2. If nothing is staged, skip the commit and continue to the pull — this is not an error.
+   3. Otherwise commit using the message rules of `/github-commit` (conventional format, English by default, never `Co-Authored-By:`).
+   4. If the commit fails, stop without pulling or pushing.
 
-2. **Repository mode**
+   Without `commit`, the skill never stages or commits anything.
+
+3. **Repository mode**
    1. **Pull** per the table above.
    2. **If pull succeeds**: Execute push (same logic as `/github-push` when origin exists):
       - Upstream configured → `git push`
@@ -214,12 +224,12 @@ When the first argument is anything other than `ff`, it is treated as a submodul
       - `--ff-only` rejected → suggest using `--rebase` or manual merge
    4. **Never force-push**.
 
-3. **Submodule mode**
+4. **Submodule mode**
    1. Validate the path with `git submodule status -- <submodule>`. If it exits non-zero or prints nothing, report an error and exit.
-   2. If the submodule is in detached HEAD state (`git -C <submodule> branch --show-current` prints nothing), report an error and exit without pulling or pushing — there is no branch to pull into or push.
+   2. If the submodule is in detached HEAD state (`git -C <submodule> branch --show-current` prints nothing), report an error and exit without committing, pulling, or pushing — there is no branch to pull into or push.
    3. If the submodule has no `origin` remote, report an error and exit. Unlike `/github-push`, no GitHub repository is ever auto-created in submodule mode.
-   4. Pull and push inside the submodule with `git -C <submodule>`; never `cd`. Pull failure suppresses push exactly as in repository mode.
-   5. Do not stage or commit the parent repository's gitlink. If the submodule's HEAD moved, report that the gitlink is now modified and that `/github-commit` must be run in the parent repository to record it.
+   4. Run the commit step (when `commit` was passed), then pull and push, all inside the submodule with `git -C <submodule>`; never `cd`. Pull failure suppresses push exactly as in repository mode.
+   5. Do not stage or commit the parent repository's gitlink — `commit` only ever commits inside the submodule. If the submodule's HEAD moved, report that the gitlink is now modified and that `/github-commit` must be run in the parent repository to record it.
 
 ### Error Handling
 
@@ -228,9 +238,11 @@ When the first argument is anything other than `ff`, it is treated as a submodul
 | Pull conflict | Report conflict, suggest `git rebase --abort` |
 | `--ff-only` rejected | Suggest `git pull --rebase` |
 | Push fails | Surface git error |
-| First argument is not `ff` and not a registered submodule | Report `Error: '<submodule>' is not a git submodule of this repository.`, exit without syncing |
-| Submodule is in detached HEAD | Report error, exit without pulling or pushing |
-| Submodule has no `origin` remote | Report error, exit without pulling or pushing |
+| Nothing to commit with `commit` passed | Skip the commit, continue with pull and push |
+| `git commit` fails with `commit` passed | Surface git error, exit without pulling or pushing |
+| A non-keyword argument is not a registered submodule | Report `Error: '<submodule>' is not a git submodule of this repository.`, exit without syncing |
+| Submodule is in detached HEAD | Report error, exit without committing, pulling, or pushing |
+| Submodule has no `origin` remote | Report error, exit without committing, pulling, or pushing |
 
 ---
 
