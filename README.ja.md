@@ -6,10 +6,20 @@ Git ワークフローを自動化する Claude Code プラグイン。
 
 ## インストール
 
+macOS / Linux:
+
 ```bash
 git clone https://github.com/siosig/github-skills.git
 cd github-skills
 ./install_claude_plugin.sh
+```
+
+Windows (PowerShell 7):
+
+```powershell
+git clone https://github.com/siosig/github-skills.git
+cd github-skills
+./install_claude_plugin.ps1
 ```
 
 Claude Code を再起動して有効化する。

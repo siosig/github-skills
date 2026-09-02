@@ -6,10 +6,20 @@ Claude Code plugin that provides Git workflow automation skills.
 
 ## Installation
 
+macOS / Linux:
+
 ```bash
 git clone https://github.com/siosig/github-skills.git
 cd github-skills
 ./install_claude_plugin.sh
+```
+
+Windows (PowerShell 7):
+
+```powershell
+git clone https://github.com/siosig/github-skills.git
+cd github-skills
+./install_claude_plugin.ps1
 ```
 
 Restart Claude Code to activate.
