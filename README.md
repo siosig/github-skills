@@ -38,6 +38,7 @@ claude plugin uninstall github-skills --yes
 | `/github-commit <submodule> [all]` | Create the commit inside the given submodule instead of the current repository |
 | `/github-push [private]` | Push the current branch to remote (add `private` to create private repo if origin is missing) |
 | `/github-sync [ff]` | Pull with rebase, then push (add `ff` to use fast-forward only) |
+| `/github-sync commit [all]` | Pull with `--rebase --autostash`, commit the local changes, then push (add `all` to include untracked files) |
 | `/github-sync <submodule> [ff]` | Run the pull/push synchronization inside the given submodule |
 | `/github-auto-repo [private]` | Create a GitHub repository matching the folder name (add `private` for private repo) |
 | `/github-main-merge` | Merge the current branch into `main` (or `master` if the repository has no `main`) and push it to `origin`, with no tag created |
@@ -54,7 +55,9 @@ claude plugin uninstall github-skills --yes
 - `/github-push` never force-pushes on non-fast-forward rejection
 - `/github-push` auto-creates a GitHub repository when no `origin` remote is configured
 - `/github-sync` skips push if pull fails
+- `/github-sync commit` pulls with `--autostash` so a dirty working tree is no obstacle, and never commits when the pull left unmerged paths behind
 - `/github-sync <submodule>` refuses to run when the submodule is in detached HEAD or has no `origin`, and never auto-creates a remote
+- `/github-sync commit` cannot be combined with a submodule path; run `/github-commit <submodule>` then `/github-sync <submodule>` instead
 - `/github-main-merge` targets `main` when it exists and falls back to `master` otherwise; it refuses to run with uncommitted changes, never force-pushes, and returns to the original branch after a successful run
 
 ## Documentation
