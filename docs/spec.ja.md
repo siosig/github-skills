@@ -60,7 +60,7 @@
    4. `git add` と `git commit` を単一ステップで実行する。
 
 3. **submodule モード**
-   1. `git submodule status -- <submodule>` でパスを検証する。非ゼロ終了または出力が空ならエラーを表示して終了する。
+   1. 第1トークンを検証する。リポジトリに submodule が1つも無い場合は、引数が不正であることと受け付けるキーワードを表示し、トークンが本プラグインの他スキル名と一致するならそのスキルを案内する。submodule がある場合は `git submodule status -- <submodule>` でパスを検証し、非ゼロ終了または出力が空なら登録済み submodule パスを添えてエラーを表示する。いずれの場合も処理を実行せず終了する。
    2. submodule 自身の状態を収集する（`git -C <submodule>` で `status` / `diff HEAD` / `branch --show-current` / `log --oneline -10`）。親リポジトリのコンテキストは submodule の状態を表さないため必須。
    3. submodule が detached HEAD の場合は警告を表示するが処理は継続する。
    4. `git -C <submodule>` でステージとコミットを行う。`cd` は使わない。
@@ -93,7 +93,8 @@
 |------|------|
 | ステージ後に変更なし | 「コミットする変更がありません」と報告して終了 |
 | `git commit` 失敗 | git のエラーメッセージをそのまま表示 |
-| 第1引数が `all` でも登録済み submodule でもない | `Error: '<submodule>' is not a git submodule of this repository.` を表示して終了 |
+| 第1引数が `all` 以外で、リポジトリに submodule が1つも無い | 引数が不正であることと受け付けるキーワードが `all` のみであることを表示する。トークンが本プラグインの他スキル名と一致する場合は `/github-<name>` を案内する。コミットを作成せず終了 |
+| 第1引数が `all` 以外で、submodule はあるが一致しない | `Error: '<submodule>' is not a git submodule of this repository.` と登録済み submodule パスを表示して終了 |
 | submodule が detached HEAD | 警告を表示した上でコミットを作成する |
 
 ---
@@ -215,7 +216,7 @@
    4. **強制 push しない**。
 
 3. **submodule モード**
-   1. `git submodule status -- <submodule>` でパスを検証する。非ゼロ終了または出力が空ならエラーを表示して終了する。
+   1. 第1トークンを検証する。リポジトリに submodule が1つも無い場合は、引数が不正であることと受け付けるキーワードを表示し、トークンが本プラグインの他スキル名と一致するならそのスキルを案内する。submodule がある場合は `git submodule status -- <submodule>` でパスを検証し、非ゼロ終了または出力が空なら登録済み submodule パスを添えてエラーを表示する。いずれの場合も処理を実行せず終了する。
    2. submodule が detached HEAD（`git -C <submodule> branch --show-current` が空）の場合、pull/push の対象ブランチが存在しないため、pull も push も実行せずエラーを表示して終了する。
    3. submodule に `origin` リモートがない場合はエラーを表示して終了する。`/github-push` と異なり、submodule モードでは GitHub リポジトリを自動作成しない。
    4. `git -C <submodule>` で pull と push を実行する。`cd` は使わない。pull 失敗時に push を実行しない点はリポジトリモードと同じ。
@@ -228,7 +229,8 @@
 | pull コンフリクト | コンフリクトを報告して `git rebase --abort` を案内 |
 | `--ff-only` 拒否 | `git pull --rebase` または手動 merge を案内 |
 | push 失敗 | git のエラーメッセージをそのまま表示 |
-| 第1引数が `ff` でも登録済み submodule でもない | `Error: '<submodule>' is not a git submodule of this repository.` を表示して終了 |
+| 第1引数が `ff` 以外で、リポジトリに submodule が1つも無い | 引数が不正であることと受け付けるキーワードが `ff` のみであることを表示する。トークンが本プラグインの他スキル名と一致する場合は `/github-<name>` を案内する。pull も push も実行せず終了 |
+| 第1引数が `ff` 以外で、submodule はあるが一致しない | `Error: '<submodule>' is not a git submodule of this repository.` と登録済み submodule パスを表示して終了 |
 | submodule が detached HEAD | エラーを表示し、pull も push も実行せず終了 |
 | submodule に `origin` リモートがない | エラーを表示し、pull も push も実行せず終了 |
 

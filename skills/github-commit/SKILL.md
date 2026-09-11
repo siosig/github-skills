@@ -45,15 +45,36 @@ If no changes exist after staging, report "nothing to commit" and exit without c
 
 Throughout this section, `<sub>` is the submodule path from the arguments.
 
-**1. Validate the submodule**
+**1. Validate the argument**
+
+The `Submodules:` context block above already lists every registered submodule, so no extra command is needed to tell the two cases apart.
+
+**Case A — this repository has no submodules** (that block is empty or `(no submodules)`)
+
+`<sub>` cannot be a submodule path, so it is a mistyped argument. Display the error plus the matching hint below, then exit without committing:
+
+```
+Error: '<sub>' is not a valid argument for /github-commit.
+       This repository has no submodules, so the only accepted argument is 'all'.
+```
+
+| `<sub>` | Hint to append |
+|---------|----------------|
+| `sync`, `push`, `release`, `beta`, `main-merge`, `auto-repo` | `Did you mean /github-<sub>?` |
+| `ff` | `'ff' is an argument of /github-sync, not /github-commit.` |
+| anything else | (no hint) |
+
+**Case B — this repository has submodules**
 
 ```bash
 git submodule status -- "<sub>"
 ```
 
 If it exits non-zero or prints nothing, display and exit without committing:
+
 ```
 Error: '<sub>' is not a git submodule of this repository.
+       Registered submodules: <the paths listed in the context block>
 ```
 
 **2. Collect submodule context**

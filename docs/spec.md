@@ -60,7 +60,7 @@ When the first argument is anything other than `all`, it is treated as a submodu
    4. Execute `git add` and `git commit` in a single step.
 
 3. **Submodule mode**
-   1. Validate the path with `git submodule status -- <submodule>`. If it exits non-zero or prints nothing, report an error and exit.
+   1. Validate the first token. If the repository has no submodules at all, report that the argument is invalid, name the only accepted keyword, and — when the token matches another skill of this plugin — suggest that skill. Otherwise validate the path with `git submodule status -- <submodule>`; if it exits non-zero or prints nothing, report an error that lists the registered submodules. Exit without proceeding in either case.
    2. Collect the submodule's own state (`git -C <submodule>` for `status`, `diff HEAD`, `branch --show-current`, `log --oneline -10`) — the parent repository's context does not describe it.
    3. If the submodule is in detached HEAD state, warn but proceed.
    4. Stage and commit inside the submodule with `git -C <submodule>`; never `cd`.
@@ -93,7 +93,8 @@ Commit messages are written in **English by default**. Repository-specific rules
 |-----------|----------|
 | No staged changes | Report "nothing to commit", exit without creating commit |
 | `git commit` fails | Surface git error message to user |
-| First argument is not `all` and not a registered submodule | Report `Error: '<submodule>' is not a git submodule of this repository.`, exit without creating commit |
+| First argument is not `all` and the repository has no submodules | Report that the argument is invalid and that `all` is the only accepted keyword; suggest `/github-<name>` when the token names another skill of this plugin. Exit without creating commit |
+| First argument is not `all`, submodules exist, but none match | Report `Error: '<submodule>' is not a git submodule of this repository.` together with the registered submodule paths, exit without creating commit |
 | Submodule is in detached HEAD | Warn, but create the commit |
 
 ---
@@ -215,7 +216,7 @@ When the first argument is anything other than `ff`, it is treated as a submodul
    4. **Never force-push**.
 
 3. **Submodule mode**
-   1. Validate the path with `git submodule status -- <submodule>`. If it exits non-zero or prints nothing, report an error and exit.
+   1. Validate the first token. If the repository has no submodules at all, report that the argument is invalid, name the only accepted keyword, and — when the token matches another skill of this plugin — suggest that skill. Otherwise validate the path with `git submodule status -- <submodule>`; if it exits non-zero or prints nothing, report an error that lists the registered submodules. Exit without proceeding in either case.
    2. If the submodule is in detached HEAD state (`git -C <submodule> branch --show-current` prints nothing), report an error and exit without pulling or pushing — there is no branch to pull into or push.
    3. If the submodule has no `origin` remote, report an error and exit. Unlike `/github-push`, no GitHub repository is ever auto-created in submodule mode.
    4. Pull and push inside the submodule with `git -C <submodule>`; never `cd`. Pull failure suppresses push exactly as in repository mode.
@@ -228,7 +229,8 @@ When the first argument is anything other than `ff`, it is treated as a submodul
 | Pull conflict | Report conflict, suggest `git rebase --abort` |
 | `--ff-only` rejected | Suggest `git pull --rebase` |
 | Push fails | Surface git error |
-| First argument is not `ff` and not a registered submodule | Report `Error: '<submodule>' is not a git submodule of this repository.`, exit without syncing |
+| First argument is not `ff` and the repository has no submodules | Report that the argument is invalid and that `ff` is the only accepted keyword; suggest `/github-<name>` when the token names another skill of this plugin. Exit without syncing |
+| First argument is not `ff`, submodules exist, but none match | Report `Error: '<submodule>' is not a git submodule of this repository.` together with the registered submodule paths, exit without syncing |
 | Submodule is in detached HEAD | Report error, exit without pulling or pushing |
 | Submodule has no `origin` remote | Report error, exit without pulling or pushing |
 
