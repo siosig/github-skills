@@ -6,6 +6,7 @@ description: >
   Passing `all` stages all changes including untracked files.
   Passing a submodule path creates the commit inside that submodule instead of the current repository.
 allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git diff:*), Bash(git commit:*), Bash(git log:*), Bash(git branch:*), Bash(git submodule:*), Bash(git -C:*)
+model: haiku
 user-invocable: true
 ---
 

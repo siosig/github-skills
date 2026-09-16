@@ -8,6 +8,7 @@ description: >
   On success, returns to the branch that was current before the skill ran.
   Unlike `/github-release`, this skill never creates a git tag.
 allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git rev-parse:*), Bash(git rev-list:*), Bash(git checkout:*), Bash(git merge:*), Bash(git fetch:*), Bash(git push:*), Bash(git remote:*), Bash(git show-ref:*), Bash(git ls-remote:*)
+model: haiku
 user-invocable: true
 ---
 

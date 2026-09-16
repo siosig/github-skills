@@ -7,6 +7,7 @@ description: >
   If X.Y.Z is specified, use it as the base version; otherwise, auto-increment the patch version of the latest production tag.
   Beta tags are numbered sequentially (beta.1, beta.2, ...) per base version.
 allowed-tools: Bash(git tag:*), Bash(git branch:*), Bash(git checkout:*), Bash(git merge:*), Bash(git push:*), Bash(git rev-parse:*), Bash(grep:*), Bash(sort:*), Bash(head:*), Bash(tail:*)
+model: haiku
 user-invocable: true
 ---
 

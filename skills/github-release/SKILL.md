@@ -6,6 +6,7 @@ description: >
   If X.Y.Z is specified, use it as the target version; otherwise, auto-increment the patch version of the latest production tag.
   Production tags must not already exist (FR-025); attempting to create a duplicate tag will result in an error.
 allowed-tools: Bash(git tag:*), Bash(git branch:*), Bash(git checkout:*), Bash(git merge:*), Bash(git push:*), Bash(git rev-parse:*), Bash(grep:*), Bash(sort:*), Bash(head:*), Bash(tail:*)
+model: haiku
 user-invocable: true
 ---
 

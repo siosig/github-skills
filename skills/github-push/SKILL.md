@@ -8,6 +8,7 @@ description: >
   If upstream is not configured, push with `--set-upstream origin <branch>`.
   Do not force-push on non-fast-forward rejection.
 allowed-tools: Bash(git push:*), Bash(git branch:*), Bash(git remote:*), Bash(gh:*), Bash(basename:*), Bash(tr:*), Bash(sed:*), Bash(cut:*)
+model: haiku
 user-invocable: true
 ---
 

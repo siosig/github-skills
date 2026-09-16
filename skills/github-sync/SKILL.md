@@ -8,6 +8,7 @@ description: >
   Passing a submodule path synchronizes that submodule instead of the current repository.
   If pull fails, do not execute push.
 allowed-tools: Bash(git pull:*), Bash(git push:*), Bash(git branch:*), Bash(git status:*), Bash(git remote:*), Bash(git submodule:*), Bash(git -C:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*)
+model: haiku
 user-invocable: true
 ---
 

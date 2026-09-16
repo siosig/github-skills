@@ -2,6 +2,7 @@
 name: github-auto-repo
 description: Create a GitHub repository with the same name as the current folder. Use `private` for private repository; default is public.
 allowed-tools: Bash(git:*), Bash(gh:*), Bash(grep:*), Bash(basename:*), Bash(pwd:*)
+model: haiku
 user-invocable: true
 ---
 
