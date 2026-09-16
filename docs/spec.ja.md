@@ -60,7 +60,7 @@
    4. `git add` と `git commit` を単一ステップで実行する。
 
 3. **submodule モード**
-   1. `git submodule status -- <submodule>` でパスを検証する。非ゼロ終了または出力が空ならエラーを表示して終了する。
+   1. 第1トークンを検証する。リポジトリに submodule が1つも無い場合は、引数が不正であることと受け付けるキーワードを表示し、トークンが本プラグインの他スキル名と一致するならそのスキルを案内する。submodule がある場合は `git submodule status -- <submodule>` でパスを検証し、非ゼロ終了または出力が空なら登録済み submodule パスを添えてエラーを表示する。いずれの場合も処理を実行せず終了する。
    2. submodule 自身の状態を収集する（`git -C <submodule>` で `status` / `diff HEAD` / `branch --show-current` / `log --oneline -10`）。親リポジトリのコンテキストは submodule の状態を表さないため必須。
    3. submodule が detached HEAD の場合は警告を表示するが処理は継続する。
    4. `git -C <submodule>` でステージとコミットを行う。`cd` は使わない。
@@ -93,7 +93,8 @@
 |------|------|
 | ステージ後に変更なし | 「コミットする変更がありません」と報告して終了 |
 | `git commit` 失敗 | git のエラーメッセージをそのまま表示 |
-| 第1引数が `all` でも登録済み submodule でもない | `Error: '<submodule>' is not a git submodule of this repository.` を表示して終了 |
+| 第1引数が `all` 以外で、リポジトリに submodule が1つも無い | 引数が不正であることと受け付けるキーワードが `all` のみであることを表示する。トークンが本プラグインの他スキル名と一致する場合は `/github-<name>` を案内する。コミットを作成せず終了 |
+| 第1引数が `all` 以外で、submodule はあるが一致しない | `Error: '<submodule>' is not a git submodule of this repository.` と登録済み submodule パスを表示して終了 |
 | submodule が detached HEAD | 警告を表示した上でコミットを作成する |
 
 ---
@@ -170,51 +171,50 @@
 ### 書式
 
 ```
-/github-sync [ff] [commit]
-/github-sync <submodule> [ff] [commit]
+/github-sync [ff]
+/github-sync commit [all]
+/github-sync <submodule> [ff]
 ```
 
-任意引数（キーワードの順序は問わない）：
+任意引数：
 - `ff` — pull を `--rebase` の代わりに `--ff-only` で実行する
-- `commit` — 同期の前に `git add -A` してコミットを作成する
+- `commit` — `--rebase --autostash` で pull し、ローカルの変更をコミットしてから push する
+- `all` — `commit` の後ろでのみ有効。未追跡ファイルもステージする（`git add -A`）
 - `<submodule>` — submodule のパス。その submodule 内で同期を実行する
 
 ### 説明
 
 リモートの変更を取り込んでからローカルのコミットを push する。pull が成功した場合のみ push を実行する。
 
-`ff` でも `commit` でもない引数は submodule のパスとみなし、カレントリポジトリではなくその submodule 内（`git -C <submodule>`）で一連の処理を実行する。
+予約された第1トークンは `ff` と `commit` の2つ。それ以外の第1引数は submodule のパスとみなし、カレントリポジトリではなくその submodule 内（`git -C <submodule>`）で同期を実行する。
+
+`commit` モードは「作業ツリーが dirty」という頻出状況のためにある。先にリモートの変更を取り込み、そのうえでローカルの変更をコミットして push する。組み合わせられるのは `all` のみで、`ff` や submodule パスとは併用できない。
 
 ### オプション
 
 | 引数 | 種別 | 既定 | 説明 |
 |------|------|------|------|
-| `ff` | 任意キーワード | — | pull を `git pull --ff-only` で実行する（既定は `--rebase`） |
-| `commit` | 任意キーワード | — | pull の前に `git add -A` してコミットする |
-| `<submodule>` | 任意パス（キーワード以外の最初のトークン） | — | 指定 submodule 内で同期する |
+| `ff` | 任意キーワード（第1トークン） | — | pull を `git pull --ff-only` で実行する（既定は `--rebase`） |
+| `commit` | 任意キーワード（第1トークン） | — | `--rebase --autostash` で pull → コミット → push。後ろに `all` を付けられる |
+| `all` | 任意キーワード（第2トークン） | — | `commit` の後ろでのみ有効。未追跡ファイルもステージする |
+| `<submodule>` | 任意パス（第1トークン） | — | 指定 submodule 内で同期する。後ろに `ff` を付けられる |
 
 ### 動作
 
-1. `$ARGUMENTS` を空白区切りのトークンに分割する。`ff` と `commit` は位置を問わない予約キーワードで、そのどちらでもない最初のトークンが submodule パス（末尾の `/` は除去）。submodule パスがなければ対象はカレントリポジトリ。
+1. `$ARGUMENTS` を空白区切りのトークンに分割し、モードを決定する:
 
-   | 引数 | 対象 | 事前コミット | pull |
-   |------|------|--------------|------|
-   | （なし） | カレントリポジトリ | しない | `--rebase` |
-   | `ff` | カレントリポジトリ | しない | `--ff-only` |
-   | `commit` | カレントリポジトリ | する | `--rebase` |
-   | `commit ff` | カレントリポジトリ | する | `--ff-only` |
-   | `<submodule>` | `<submodule>` | しない | `--rebase` |
-   | `<submodule> commit ff` | `<submodule>` | する | `--ff-only` |
+   | 引数 | モード | 対象リポジトリ | pull | ステージ |
+   |------|--------|----------------|------|----------|
+   | （なし） | リポジトリ | カレント | `git pull --rebase` | — |
+   | `ff` | リポジトリ | カレント | `git pull --ff-only` | — |
+   | `commit` | commit | カレント | `git pull --rebase --autostash` | `git add -u` |
+   | `commit all` | commit | カレント | `git pull --rebase --autostash` | `git add -A` |
+   | `<submodule>` | submodule | `<submodule>` | `git pull --rebase` | — |
+   | `<submodule> ff` | submodule | `<submodule>` | `git pull --ff-only` | — |
 
-2. **コミットステップ**（`commit` 指定時のみ）。pull の前に対象リポジトリで実行する:
-   1. 未追跡ファイルを含めて `git add -A` する。
-   2. ステージされたものがなければコミットをスキップして pull へ進む（エラーではない）。
-   3. ステージされていれば `/github-commit` と同じメッセージ規約（conventional format、既定は英語、`Co-Authored-By:` を絶対に含めない）でコミットする。
-   4. コミットに失敗した場合は pull も push も実行せず終了する。
+   第1トークンが `ff` または `commit` の場合は常にカレントリポジトリが対象。それ以外は submodule パスとして扱う（末尾の `/` は除去）。
 
-   `commit` を指定しない限り、このスキルはステージもコミットも一切行わない。
-
-3. **リポジトリモード**
+2. **リポジトリモード**
    1. 上表に従って **pull を実行**する。
    2. **pull が成功した場合**: push を実行する（origin 設定済みの `/github-push` と同じロジック）:
       - upstream 設定済み → `git push`
@@ -224,12 +224,21 @@
       - `--ff-only` が拒否された場合 → `--rebase` の使用か手動 merge を案内
    4. **強制 push しない**。
 
+3. **commit モード**
+   1. `git pull --rebase --autostash` を実行する。`--autostash` は stash → pull → stash pop を1ステップで行う。この3コマンドを手書きしてはいけない。作業ツリーがクリーンな場合 `git stash push` は何も積まず、続く `git stash pop` が**無関係な過去の stash を復元して破棄してしまう**ため。
+   2. 結果を検査する。このコマンドは **autostash の再適用がコンフリクトしても終了コード 0 を返す**ため、終了コードだけでは不十分。`git ls-files -u` も実行する。非ゼロ終了（rebase コンフリクト）または未マージパスが1つでもあれば、**コミットも push も実行しない**で復旧方法を案内する。この検査を省くとコンフリクトマーカーをコミットしてしまう。
+   3. 上表に従ってステージする（`git add -u`、`all` 指定時は `git add -A`）。
+   4. ステージされたものが無ければコミットを作成しない。upstream より ahead の場合のみ push し、そうでなければ「同期済み・コミットするものなし」と報告して終了する。
+   5. ステージされたものがあれば、pull とステージの**後**に `git diff --staged` と `git log --oneline -10` を読んでコミットメッセージを作成し、コミットする。事前に収集したコンテキストはコミット対象を表さない。メッセージに `Co-Authored-By:` を含めてはならない。
+   6. リポジトリモードと同じロジックで push する。**強制 push しない**。
+
 4. **submodule モード**
-   1. `git submodule status -- <submodule>` でパスを検証する。非ゼロ終了または出力が空ならエラーを表示して終了する。
-   2. submodule が detached HEAD（`git -C <submodule> branch --show-current` が空）の場合、pull/push の対象ブランチが存在しないため、コミットも pull も push も実行せずエラーを表示して終了する。
-   3. submodule に `origin` リモートがない場合はエラーを表示して終了する。`/github-push` と異なり、submodule モードでは GitHub リポジトリを自動作成しない。
-   4. コミットステップ（`commit` 指定時）・pull・push をすべて `git -C <submodule>` で実行する。`cd` は使わない。pull 失敗時に push を実行しない点はリポジトリモードと同じ。
-   5. 親リポジトリの gitlink はステージもコミットもしない（`commit` を指定しても、コミットするのは submodule 内だけ）。submodule の HEAD が移動した場合は、gitlink が変更済みになったことと、記録するには親リポジトリで `/github-commit` を実行する必要があることを報告する。
+   1. 第2トークンが `commit` の場合、`/github-sync` は submodule 内でコミットできない旨を表示し、`/github-commit <submodule>` → `/github-sync <submodule>` の2段実行を案内して終了する。
+   2. 第1トークンを検証する。リポジトリに submodule が1つも無い場合は、引数が不正であることと受け付けるキーワードが `ff` と `commit` であることを表示し、トークンが本プラグインの他スキル名と一致するならそのスキルを案内する。submodule がある場合は `git submodule status -- <submodule>` でパスを検証し、非ゼロ終了または出力が空なら登録済み submodule パスを添えてエラーを表示する。いずれの場合も処理を実行せず終了する。
+   3. submodule が detached HEAD（`git -C <submodule> branch --show-current` が空）の場合、pull/push の対象ブランチが存在しないため、pull も push も実行せずエラーを表示して終了する。
+   4. submodule に `origin` リモートがない場合はエラーを表示して終了する。`/github-push` と異なり、submodule モードでは GitHub リポジトリを自動作成しない。
+   5. `git -C <submodule>` で pull と push を実行する。`cd` は使わない。pull 失敗時に push を実行しない点はリポジトリモードと同じ。
+   6. 親リポジトリの gitlink はステージもコミットもしない。submodule の HEAD が移動した場合は、gitlink が変更済みになったことと、記録するには親リポジトリで `/github-commit` を実行する必要があることを報告する。
 
 ### エラー処理
 
@@ -238,11 +247,14 @@
 | pull コンフリクト | コンフリクトを報告して `git rebase --abort` を案内 |
 | `--ff-only` 拒否 | `git pull --rebase` または手動 merge を案内 |
 | push 失敗 | git のエラーメッセージをそのまま表示 |
-| `commit` 指定時にコミット対象なし | コミットをスキップして pull・push を続行 |
-| `commit` 指定時に `git commit` 失敗 | git のエラーを表示し、pull も push も実行せず終了 |
-| キーワード以外の引数が登録済み submodule でない | `Error: '<submodule>' is not a git submodule of this repository.` を表示して終了 |
-| submodule が detached HEAD | エラーを表示し、コミットも pull も push も実行せず終了 |
-| submodule に `origin` リモートがない | エラーを表示し、コミットも pull も push も実行せず終了 |
+| 第1引数が `ff`/`commit` 以外で、リポジトリに submodule が1つも無い | 引数が不正であることと受け付けるキーワードが `ff` と `commit` であることを表示する。トークンが本プラグインの他スキル名と一致する場合は `/github-<name>` を案内する。pull も push も実行せず終了 |
+| 第1引数が `ff`/`commit` 以外で、submodule はあるが一致しない | `Error: '<submodule>' is not a git submodule of this repository.` と登録済み submodule パスを表示して終了 |
+| `commit` モード: rebase コンフリクト（非ゼロ終了） | コンフリクトを報告して `git rebase --abort` を案内。コミットも push もしない |
+| `commit` モード: autostash 再適用コンフリクト（終了コード 0 だが `git ls-files -u` が非空） | 未マージパスを報告。コミットも push もしない。変更は stash にも残っている |
+| `commit` モード: ステージされたものが無い | コミットを作成しない。upstream より ahead の場合のみ push する |
+| `<submodule> commit` | submodule 内でのコミットは非対応である旨を表示し、`/github-commit <submodule>` → `/github-sync <submodule>` を案内 |
+| submodule が detached HEAD | エラーを表示し、pull も push も実行せず終了 |
+| submodule に `origin` リモートがない | エラーを表示し、pull も push も実行せず終了 |
 
 ---
 

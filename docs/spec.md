@@ -60,7 +60,7 @@ When the first argument is anything other than `all`, it is treated as a submodu
    4. Execute `git add` and `git commit` in a single step.
 
 3. **Submodule mode**
-   1. Validate the path with `git submodule status -- <submodule>`. If it exits non-zero or prints nothing, report an error and exit.
+   1. Validate the first token. If the repository has no submodules at all, report that the argument is invalid, name the only accepted keyword, and — when the token matches another skill of this plugin — suggest that skill. Otherwise validate the path with `git submodule status -- <submodule>`; if it exits non-zero or prints nothing, report an error that lists the registered submodules. Exit without proceeding in either case.
    2. Collect the submodule's own state (`git -C <submodule>` for `status`, `diff HEAD`, `branch --show-current`, `log --oneline -10`) — the parent repository's context does not describe it.
    3. If the submodule is in detached HEAD state, warn but proceed.
    4. Stage and commit inside the submodule with `git -C <submodule>`; never `cd`.
@@ -93,7 +93,8 @@ Commit messages are written in **English by default**. Repository-specific rules
 |-----------|----------|
 | No staged changes | Report "nothing to commit", exit without creating commit |
 | `git commit` fails | Surface git error message to user |
-| First argument is not `all` and not a registered submodule | Report `Error: '<submodule>' is not a git submodule of this repository.`, exit without creating commit |
+| First argument is not `all` and the repository has no submodules | Report that the argument is invalid and that `all` is the only accepted keyword; suggest `/github-<name>` when the token names another skill of this plugin. Exit without creating commit |
+| First argument is not `all`, submodules exist, but none match | Report `Error: '<submodule>' is not a git submodule of this repository.` together with the registered submodule paths, exit without creating commit |
 | Submodule is in detached HEAD | Warn, but create the commit |
 
 ---
@@ -153,11 +154,11 @@ If no `origin` remote is configured:
 
 | Condition | Message |
 |-----------|---------|
-| Not a git repository | `エラー: git リポジトリではありません。` |
-| gh not authenticated | `エラー: GitHub CLI が認証されていません。\n実行してください: gh auth login` |
-| Cannot generate repo name | `エラー: フォルダ名からリポジトリ名を生成できません。` |
-| Same-name repo exists | `エラー: github.com に同名のリポジトリ (<name>) が既に存在します。\n手動で origin を設定してください: git remote add origin <url>` |
-| Push failed (after create) | `⚠ リポジトリの作成と origin の設定は完了しましたが、プッシュが失敗しました。\n  origin: <url>\n  手動で再試行してください: git push --set-upstream origin <branch>` |
+| Not a git repository | `Error: Not a git repository.` |
+| gh not authenticated | `Error: GitHub CLI is not authenticated.\nRun: gh auth login` |
+| Cannot generate repo name | `Error: Cannot generate repository name from folder name.` |
+| Same-name repo exists | `Error: A repository named <name> already exists on github.com.\nSet origin manually: git remote add origin <url>` |
+| Push failed (after create) | `WARNING: Repository creation and origin configuration succeeded, but push failed.\n  origin: <url>\n  Retry manually: git push --set-upstream origin <branch>` |
 
 ### Required Tools
 
@@ -170,51 +171,50 @@ If no `origin` remote is configured:
 ### Synopsis
 
 ```
-/github-sync [ff] [commit]
-/github-sync <submodule> [ff] [commit]
+/github-sync [ff]
+/github-sync commit [all]
+/github-sync <submodule> [ff]
 ```
 
-Optional arguments (keywords may appear in any order):
+Optional arguments:
 - `ff` — Use `--ff-only` instead of `--rebase` for pull
-- `commit` — Run `git add -A` and create a commit before synchronizing
+- `commit` — Pull with `--rebase --autostash`, commit the local changes, then push
+- `all` — Only after `commit`: stage untracked files too (`git add -A`)
 - `<submodule>` — Path of a submodule; the synchronization runs inside that submodule
 
 ### Description
 
 Pulls remote changes, then pushes local commits. Designed to synchronize the current branch with its remote counterpart. Push is only executed when pull succeeds.
 
-Any argument that is neither `ff` nor `commit` is treated as a submodule path, and the whole operation runs inside that submodule (`git -C <submodule>`) instead of the current repository.
+`ff` and `commit` are the only reserved first tokens. Any other first argument is treated as a submodule path and the synchronization runs inside that submodule (`git -C <submodule>`) instead of the current repository.
+
+`commit` mode exists for the common case of a dirty working tree: it takes in remote changes first, then records the local changes and pushes them. It combines with `all` only — never with `ff` or a submodule path.
 
 ### Options
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
-| `ff` | optional keyword | — | Use `git pull --ff-only` instead of `git pull --rebase` |
-| `commit` | optional keyword | — | `git add -A` and commit before pulling |
-| `<submodule>` | optional path (1st non-keyword token) | — | Synchronize this submodule |
+| `ff` | optional keyword (1st token) | — | Use `git pull --ff-only` instead of `git pull --rebase` |
+| `commit` | optional keyword (1st token) | — | Pull with `--rebase --autostash`, commit, then push; may be followed by `all` |
+| `all` | optional keyword (2nd token) | — | Only valid after `commit`: stage untracked files too |
+| `<submodule>` | optional path (1st token) | — | Synchronize this submodule; may be followed by `ff` |
 
 ### Behavior
 
-1. Split `$ARGUMENTS` into whitespace-separated tokens. `ff` and `commit` are reserved keywords recognized in any position; the first token that is neither is the submodule path (trailing `/` stripped). Absent a submodule path, the target is the current repository.
+1. Split `$ARGUMENTS` into whitespace-separated tokens and resolve the mode:
 
-   | Arguments | Target | Commit first | Pull |
-   |-----------|--------|--------------|------|
-   | (none) | current repository | no | `--rebase` |
-   | `ff` | current repository | no | `--ff-only` |
-   | `commit` | current repository | yes | `--rebase` |
-   | `commit ff` | current repository | yes | `--ff-only` |
-   | `<submodule>` | `<submodule>` | no | `--rebase` |
-   | `<submodule> commit ff` | `<submodule>` | yes | `--ff-only` |
+   | Arguments | Mode | Target repository | Pull | Stage |
+   |-----------|------|-------------------|------|-------|
+   | (none) | repository | current | `git pull --rebase` | — |
+   | `ff` | repository | current | `git pull --ff-only` | — |
+   | `commit` | commit | current | `git pull --rebase --autostash` | `git add -u` |
+   | `commit all` | commit | current | `git pull --rebase --autostash` | `git add -A` |
+   | `<submodule>` | submodule | `<submodule>` | `git pull --rebase` | — |
+   | `<submodule> ff` | submodule | `<submodule>` | `git pull --ff-only` | — |
 
-2. **Commit step** (only when `commit` was passed), executed before the pull in the target repository:
-   1. Run `git add -A`, including untracked files.
-   2. If nothing is staged, skip the commit and continue to the pull — this is not an error.
-   3. Otherwise commit using the message rules of `/github-commit` (conventional format, English by default, never `Co-Authored-By:`).
-   4. If the commit fails, stop without pulling or pushing.
+   A first token of `ff` or `commit` always targets the current repository. Any other first token is a submodule path (trailing `/` stripped).
 
-   Without `commit`, the skill never stages or commits anything.
-
-3. **Repository mode**
+2. **Repository mode**
    1. **Pull** per the table above.
    2. **If pull succeeds**: Execute push (same logic as `/github-push` when origin exists):
       - Upstream configured → `git push`
@@ -224,12 +224,21 @@ Any argument that is neither `ff` nor `commit` is treated as a submodule path, a
       - `--ff-only` rejected → suggest using `--rebase` or manual merge
    4. **Never force-push**.
 
+3. **Commit mode**
+   1. `git pull --rebase --autostash`. `--autostash` performs stash → pull → stash pop as one step. Hand-writing those three commands is unsafe: on a clean working tree `git stash push` stores nothing, and the `git stash pop` that follows restores — and drops — an unrelated older stash entry.
+   2. Inspect the result. The command exits **0 even when re-applying the autostash conflicts**, so the exit code alone is not sufficient; also run `git ls-files -u`. A non-zero exit (rebase conflict) or any unmerged path means **no commit and no push** — report recovery guidance instead. Committing without this check would record conflict markers.
+   3. Stage per the table above (`git add -u`, or `git add -A` when `all` was passed).
+   4. If nothing is staged, create no commit. Push only when the branch is ahead of upstream; otherwise report that the repository is already in sync and exit.
+   5. Otherwise compose the commit message from `git diff --staged` and `git log --oneline -10` read **after** the pull and staging — the context gathered before them does not describe what is being committed — then run `git commit`. `Co-Authored-By:` must never appear in the message.
+   6. Push with the same logic as repository mode. **Never force-push**.
+
 4. **Submodule mode**
-   1. Validate the path with `git submodule status -- <submodule>`. If it exits non-zero or prints nothing, report an error and exit.
-   2. If the submodule is in detached HEAD state (`git -C <submodule> branch --show-current` prints nothing), report an error and exit without committing, pulling, or pushing — there is no branch to pull into or push.
-   3. If the submodule has no `origin` remote, report an error and exit. Unlike `/github-push`, no GitHub repository is ever auto-created in submodule mode.
-   4. Run the commit step (when `commit` was passed), then pull and push, all inside the submodule with `git -C <submodule>`; never `cd`. Pull failure suppresses push exactly as in repository mode.
-   5. Do not stage or commit the parent repository's gitlink — `commit` only ever commits inside the submodule. If the submodule's HEAD moved, report that the gitlink is now modified and that `/github-commit` must be run in the parent repository to record it.
+   1. If the second token is `commit`, report that `/github-sync` cannot commit inside a submodule and guide the user to run `/github-commit <submodule>` followed by `/github-sync <submodule>`. Exit without syncing.
+   2. Validate the first token. If the repository has no submodules at all, report that the argument is invalid, name the accepted keywords (`ff` and `commit`), and — when the token matches another skill of this plugin — suggest that skill. Otherwise validate the path with `git submodule status -- <submodule>`; if it exits non-zero or prints nothing, report an error that lists the registered submodules. Exit without proceeding in either case.
+   3. If the submodule is in detached HEAD state (`git -C <submodule> branch --show-current` prints nothing), report an error and exit without pulling or pushing — there is no branch to pull into or push.
+   4. If the submodule has no `origin` remote, report an error and exit. Unlike `/github-push`, no GitHub repository is ever auto-created in submodule mode.
+   5. Pull and push inside the submodule with `git -C <submodule>`; never `cd`. Pull failure suppresses push exactly as in repository mode.
+   6. Do not stage or commit the parent repository's gitlink. If the submodule's HEAD moved, report that the gitlink is now modified and that `/github-commit` must be run in the parent repository to record it.
 
 ### Error Handling
 
@@ -238,11 +247,14 @@ Any argument that is neither `ff` nor `commit` is treated as a submodule path, a
 | Pull conflict | Report conflict, suggest `git rebase --abort` |
 | `--ff-only` rejected | Suggest `git pull --rebase` |
 | Push fails | Surface git error |
-| Nothing to commit with `commit` passed | Skip the commit, continue with pull and push |
-| `git commit` fails with `commit` passed | Surface git error, exit without pulling or pushing |
-| A non-keyword argument is not a registered submodule | Report `Error: '<submodule>' is not a git submodule of this repository.`, exit without syncing |
-| Submodule is in detached HEAD | Report error, exit without committing, pulling, or pushing |
-| Submodule has no `origin` remote | Report error, exit without committing, pulling, or pushing |
+| First argument is not `ff`/`commit` and the repository has no submodules | Report that the argument is invalid and that `ff` and `commit` are the accepted keywords; suggest `/github-<name>` when the token names another skill of this plugin. Exit without syncing |
+| First argument is not `ff`/`commit`, submodules exist, but none match | Report `Error: '<submodule>' is not a git submodule of this repository.` together with the registered submodule paths, exit without syncing |
+| `commit` mode: rebase conflict (non-zero exit) | Report conflict, suggest `git rebase --abort`; no commit, no push |
+| `commit` mode: autostash re-apply conflict (exit 0 but `git ls-files -u` non-empty) | Report the conflicted paths; no commit, no push. The changes also remain in the stash |
+| `commit` mode: nothing staged | Create no commit; push only when the branch is ahead of upstream |
+| `<submodule> commit` | Report that committing inside a submodule is unsupported; guide to `/github-commit <submodule>` then `/github-sync <submodule>` |
+| Submodule is in detached HEAD | Report error, exit without pulling or pushing |
+| Submodule has no `origin` remote | Report error, exit without pulling or pushing |
 
 ---
 
