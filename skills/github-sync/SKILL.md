@@ -99,9 +99,11 @@ If nothing is staged, create no commit:
 Otherwise read the staged content **now** — the `## Context` blocks above predate both the pull and the staging, so they do not describe what is being committed:
 
 ```bash
-git diff --staged
+git diff --staged --stat
 git log --oneline -10
 ```
+
+Then read only the diffs needed to write the message: `git diff --staged -- <path> [<path>...]` (skip lockfiles/generated files; for a large diff redirect to a scratchpad file and read the relevant hunks). Do not run a bare `git diff --staged` over a large change.
 
 Compose the message as `<type>(<scope>): <summary>`, where type is one of
 `feat` / `fix` / `refactor` / `docs` / `chore` / `test` / `style` / `perf`.

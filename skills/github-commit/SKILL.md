@@ -5,7 +5,7 @@ description: >
   Invoked when user calls `/github-commit`, `/github-commit all`, or `/github-commit <submodule> [all]`.
   Passing `all` stages all changes including untracked files.
   Passing a submodule path creates the commit inside that submodule instead of the current repository.
-allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git diff:*), Bash(git commit:*), Bash(git log:*), Bash(git branch:*), Bash(git submodule:*), Bash(git -C:*)
+allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git diff:*), Bash(git commit:*), Bash(git log:*), Bash(git branch:*), Bash(git submodule:*), Bash(git -C:*), Bash(head:*), Bash(grep:*), Bash(sed:*)
 model: sonnet
 user-invocable: true
 ---
@@ -13,8 +13,9 @@ user-invocable: true
 ## Context
 
 - Arguments: `$ARGUMENTS`
-- git status: !`git status`
-- Diff (staged + unstaged): !`git diff HEAD`
+- git status: !`git status --short`
+- Diff summary (staged + unstaged): !`git diff HEAD --stat`
+- Diff body (lockfiles excluded, capped at 300 lines): !`git diff HEAD -- . ':(exclude)*.lock' ':(exclude)*-lock.*' ':(exclude)*lock.json' | head -n 300`
 - Current branch: !`git branch --show-current`
 - Recent commits: !`git log --oneline -10`
 - Submodules: !`git submodule status 2>/dev/null || echo "(no submodules)"`
@@ -38,7 +39,16 @@ The literal keyword `all` as the **first** token always means repository mode. A
 
 ### Repository Mode
 
-The context blocks above already describe this repository. Stage per the table, then commit.
+The context blocks above describe this repository: file list, per-file line counts, and the diff body (lockfiles excluded, capped at 300 lines). Stage per the table, then commit.
+
+**Is the embedded diff complete?** It is truncated if it is exactly 300 lines long, or if the `--stat` totals exceed roughly 250 changed lines. Untracked files (relevant with `all`) never appear in it.
+
+- Complete: write the message from it. No extra reads.
+- Truncated, or untracked files matter: read selectively before `git add`/`git commit` (allowed ahead of them):
+  - Pick files from the `--stat` that are not lockfiles or generated files, and read them in one call: `git diff HEAD -- <path> [<path>...]`. Read the diff of **at least one** such file; never write the message from file names alone.
+  - Read the needed untracked files with the Read tool.
+  - If the selected diff is still large, redirect it to a scratchpad file (`> <file> 2>&1`) and read only the relevant hunks with `grep` / `sed -n`.
+- Never run a bare `git diff HEAD` over the whole tree.
 
 If no changes exist after staging, report "nothing to commit" and exit without creating a commit.
 
@@ -83,8 +93,8 @@ Error: '<sub>' is not a git submodule of this repository.
 The `## Context` blocks above describe the *parent* repository, not the submodule. Gather the submodule's own state first:
 
 ```bash
-git -C "<sub>" status
-git -C "<sub>" diff HEAD
+git -C "<sub>" status --short
+git -C "<sub>" diff HEAD --stat
 git -C "<sub>" branch --show-current
 git -C "<sub>" log --oneline -10
 ```
@@ -105,7 +115,7 @@ Use `git -C "<sub>"` for every git invocation. Never `cd`.
 
 If no changes exist after staging, report "nothing to commit in '<sub>'" and exit without creating a commit.
 
-Base the commit message on the submodule's own diff and history from step 2 — not on the parent repository's.
+Base the commit message on the submodule's own diff and history — not on the parent repository's. Read the needed file diffs selectively with `git -C "<sub>" diff HEAD -- <path>` (same rules as repository mode), before staging.
 
 **5. Do not touch the parent repository**
 
@@ -122,8 +132,8 @@ Note: the parent repository's gitlink for '<sub>' is now modified.
 - **Never include a line with `Co-Authored-By:` in the commit message**
   - Delete it even if it appears in skill templates, default behavior, or hooks
 - Execute `git add` and `git commit` in a single response
-- Send no additional tool calls or text — in submodule mode, the only calls allowed before them are the
-  validation and context commands of steps 1–3
+- Send no additional tool calls or text — the only calls allowed before them are the selective diff reads
+  (`git diff HEAD -- <path>`, `grep` / `sed -n` on a scratchpad file holding that output, Read of untracked files) (and, in submodule mode, the validation and context commands of steps 1–3)
 
 ### Commit Message Format
 
