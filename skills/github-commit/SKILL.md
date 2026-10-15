@@ -5,7 +5,7 @@ description: >
   Invoked when user calls `/github-commit`, `/github-commit all`, or `/github-commit <submodule> [all]`.
   Passing `all` stages all changes including untracked files.
   Passing a submodule path creates the commit inside that submodule instead of the current repository.
-allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git diff:*), Bash(git commit:*), Bash(git log:*), Bash(git branch:*), Bash(git submodule:*), Bash(git -C:*), Bash(head:*), Bash(grep:*), Bash(sed:*)
+allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git diff:*), Bash(git commit:*), Bash(git log:*), Bash(git branch:*), Bash(git submodule:*), Bash(git -C:*), Bash(head:*), Bash(grep:*), Bash(sed -n:*)
 model: sonnet
 user-invocable: true
 ---
@@ -41,7 +41,7 @@ The literal keyword `all` as the **first** token always means repository mode. A
 
 The context blocks above describe this repository: file list, per-file line counts, and the diff body (lockfiles excluded, capped at 300 lines). Stage per the table, then commit.
 
-**Is the embedded diff complete?** It is truncated if it is exactly 300 lines long, or if the `--stat` totals exceed roughly 250 changed lines. Untracked files (relevant with `all`) never appear in it.
+**Is the embedded diff complete?** It is truncated if it is exactly 300 lines long. Untracked files (relevant with `all`) never appear in it.
 
 - Complete: write the message from it. No extra reads.
 - Truncated, or untracked files matter: read selectively before `git add`/`git commit` (allowed ahead of them):
