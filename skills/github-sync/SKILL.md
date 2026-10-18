@@ -62,6 +62,20 @@ Split `$ARGUMENTS` into whitespace-separated tokens:
 
 Reached when the first token is `commit`. The order is pull -> commit -> push. The point of this mode is to let a **dirty working tree** take in remote changes first, so never stop at git's "cannot pull with local changes" state.
 
+**0. Screen the staging scope (before pulling)**
+
+The Stage column above is the scope. **Never narrow it on your own** — no `git add -- <path>`, no leaving paths out because they look unrelated to the current work (e.g. `.mcp.json`, notes, docs). Stage a different scope only when the user explicitly named one.
+
+Screen every path step 3 would stage (`Current status` above: tracked changes, plus `??` lines with `all`). Flag a path that looks like a secret (`.env*`, `*.pem`, `*.key`, `id_rsa*`, credential/token files), a browser profile or application cache directory, a large generated artifact (build output, `node_modules/`, archives, binaries, dumps), or anything else that belongs in `.gitignore`.
+
+- Nothing flagged → continue to step 1.
+- Something flagged → **do not pull, stage, or commit yet. Never drop a path silently.** Show each flagged path with its reason, ask the user to choose per path, then stop and wait:
+  1. Add it to `.gitignore` (untracked paths only), then stage per the table
+  2. Exclude it from this commit: in step 3 use `git add -A -- . ':(exclude)<path>'` (`-u` instead of `-A` without `all`)
+  3. Include it as is
+
+  After the answer, run steps 1–5 with those choices.
+
 **1. Pull with autostash**
 
 ```bash
@@ -88,7 +102,7 @@ Skipping this check would commit conflict markers.
 
 **3. Stage**
 
-- `git add -u` (or `git add -A` when `all` was passed)
+- `git add -u` (or `git add -A` when `all` was passed), narrowed only by the user's step 0 choices
 
 **4. Commit**
 

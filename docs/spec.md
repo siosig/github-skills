@@ -57,7 +57,7 @@ When the first argument is anything other than `all`, it is treated as a submodu
    1. Stage per the table above.
    2. If no changes exist after staging, report "nothing to commit" and exit without creating a commit.
    3. Analyze the diff (`git diff HEAD`) and recent commit history (`git log --oneline -10`) to compose a commit message.
-   4. Execute `git add` and `git commit` in a single step.
+   4. Execute `git add` and `git commit` in a single step, except when the staging-scope screen (below) flags a path.
 
 3. **Submodule mode**
    1. Validate the first token. If the repository has no submodules at all, report that the argument is invalid, name the only accepted keyword, and — when the token matches another skill of this plugin — suggest that skill. Otherwise validate the path with `git submodule status -- <submodule>`; if it exits non-zero or prints nothing, report an error that lists the registered submodules. Exit without proceeding in either case.
@@ -86,6 +86,11 @@ Commit messages are written in **English by default**. Repository-specific rules
 - **Never** include `Co-Authored-By:` in commit messages, regardless of any template or default behavior.
 - Does not push after committing.
 - Creates exactly one commit. In submodule mode, the parent repository is left untouched.
+- **Staging scope** (both modes): the Staging column of the table is the scope.
+  - Never narrow it with `git add -- <path>` or by leaving out paths that look unrelated to the current work. A different scope is used only when the user explicitly names one.
+  - Before `git add`, screen every path it would stage (tracked changes, plus untracked paths with `all`). Flag a path that looks like a secret, a browser profile or application cache, a large generated artifact, or anything else that belongs in `.gitignore`.
+  - Nothing flagged → stage and commit in a single step.
+  - Something flagged → do not stage or commit. Show each flagged path with its reason and ask the user to choose per path: add it to `.gitignore` (untracked paths only), exclude it from this commit (`git add -A -- . ':(exclude)<path>'`, or `-u` without `all`), or include it as is. After the answer, stage and commit in a single step. A flagged path is never dropped silently.
 
 ### Error Handling
 
@@ -225,9 +230,10 @@ Pulls remote changes, then pushes local commits. Designed to synchronize the cur
    4. **Never force-push**.
 
 3. **Commit mode**
+   0. Before pulling, apply the same staging-scope screen as `/github-commit` to the paths step 3 would stage. If a path is flagged, do not pull, stage, or commit; ask the user to choose per path (add to `.gitignore` / exclude / include as is), then run the remaining steps with those choices. Never narrow the scope on your own.
    1. `git pull --rebase --autostash`. `--autostash` performs stash → pull → stash pop as one step. Hand-writing those three commands is unsafe: on a clean working tree `git stash push` stores nothing, and the `git stash pop` that follows restores — and drops — an unrelated older stash entry.
    2. Inspect the result. The command exits **0 even when re-applying the autostash conflicts**, so the exit code alone is not sufficient; also run `git ls-files -u`. A non-zero exit (rebase conflict) or any unmerged path means **no commit and no push** — report recovery guidance instead. Committing without this check would record conflict markers.
-   3. Stage per the table above (`git add -u`, or `git add -A` when `all` was passed).
+   3. Stage per the table above (`git add -u`, or `git add -A` when `all` was passed), narrowed only by the user's step 0 choices.
    4. If nothing is staged, create no commit. Push only when the branch is ahead of upstream; otherwise report that the repository is already in sync and exit.
    5. Otherwise compose the commit message from `git diff --staged` and `git log --oneline -10` read **after** the pull and staging — the context gathered before them does not describe what is being committed — then run `git commit`. `Co-Authored-By:` must never appear in the message.
    6. Push with the same logic as repository mode. **Never force-push**.

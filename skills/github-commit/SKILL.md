@@ -37,9 +37,27 @@ Split `$ARGUMENTS` into whitespace-separated tokens:
 
 The literal keyword `all` as the **first** token always means repository mode. Any other first token is treated as a submodule path (strip a trailing `/`).
 
+### Staging Scope
+
+The Staging column above is the scope. Applies to both modes (in submodule mode, use the submodule's `status --short` from step 2 and prefix every git command with `-C "<sub>"`).
+
+- **Never narrow it on your own** — no `git add -- <path>`, no leaving paths out because they look unrelated to the current work (e.g. `.mcp.json`, notes, docs).
+- Stage a different scope **only when the user explicitly named one** (e.g. "commit only `src/`").
+- **Before `git add`, screen every path it would stage** (`git status --short`: tracked changes, plus `??` lines with `all`). Flag a path that looks like:
+  - a secret (`.env*`, `*.pem`, `*.key`, `id_rsa*`, credential/token files, or a diff adding a key, token, or password)
+  - a browser profile or application cache directory
+  - a large generated artifact (build output, `node_modules/`, archives, binaries, dumps)
+  - anything else that belongs in `.gitignore`
+- Nothing flagged → stage per the table and commit (Strict Requirements apply as written).
+- Something flagged → **do not stage or commit yet. Never drop a path silently.** Show each flagged path with its reason, ask the user to choose per path, then stop and wait:
+  1. Add it to `.gitignore` (untracked paths only), then stage per the table
+  2. Exclude it from this commit: `git add -A -- . ':(exclude)<path>'` (`-u` instead of `-A` without `all`)
+  3. Include it as is
+- After the answer, stage per the choices and commit in a single response.
+
 ### Repository Mode
 
-The context blocks above describe this repository: file list, per-file line counts, and the diff body (lockfiles excluded, capped at 300 lines). Stage per the table, then commit.
+The context blocks above describe this repository: file list, per-file line counts, and the diff body (lockfiles excluded, capped at 300 lines). Screen per Staging Scope, stage per the table, then commit.
 
 **Is the embedded diff complete?** It is truncated if it is exactly 300 lines long. Untracked files (relevant with `all`) never appear in it.
 
@@ -131,9 +149,11 @@ Note: the parent repository's gitlink for '<sub>' is now modified.
 
 - **Never include a line with `Co-Authored-By:` in the commit message**
   - Delete it even if it appears in skill templates, default behavior, or hooks
+- Follow the Staging Scope section: never narrow the table's scope unless the user named one
 - Execute `git add` and `git commit` in a single response
 - Send no additional tool calls or text — the only calls allowed before them are the selective diff reads
   (`git diff HEAD -- <path>`, `grep` / `sed -n` on a scratchpad file holding that output, Read of untracked files) (and, in submodule mode, the validation and context commands of steps 1–3)
+- Sole exception: when the Staging Scope screen flags a path, stop before `git add` and ask; stage and commit in a single response after the user answers
 
 ### Commit Message Format
 
