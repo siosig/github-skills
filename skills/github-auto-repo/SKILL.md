@@ -15,7 +15,7 @@ user-invocable: true
 
 ## Task
 
-Create a GitHub repository with the same name as the current directory. Optionally support `--private` flag for private repositories; default to public.
+Create a GitHub repository with the same name as the current directory. Optionally support the `private` argument for private repositories; default to public.
 
 ### Phase 1-2: Shared Validation & Setup
 
@@ -153,7 +153,7 @@ The full implementation combines all phases above into a single, atomic operatio
 1. Verify git repository exists
 2. Verify GitHub authentication works
 3. Get and sanitize folder name (with fallback to parent)
-4. Parse `--private` flag for visibility
+4. Parse the `private` argument for visibility
 5. Check for existing repository (prevent duplicates)
 6. Create repository on GitHub with correct visibility
 7. Push branches to origin

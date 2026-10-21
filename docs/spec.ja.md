@@ -141,7 +141,7 @@
 `origin` リモートが設定されていない場合:
 
 1. **認証確認**: `gh auth status` を実行する。未認証の場合は `gh auth login` の実行を促してエラー終了する。
-2. **可視性の決定**: `--private` あり → private、なし → public。
+2. **可視性の決定**: 引数 `private` あり → private、なし → public。
 3. **リポジトリ名のサニタイズ**: カレントディレクトリ名から以下の変換でリポジトリ名を生成する:
    - スペースを `-` に変換
    - `[a-zA-Z0-9._-]` 以外の文字を除去
@@ -300,7 +300,7 @@
 #### リポジトリの作成
 
 1. **重複チェック**: `gh repo list --source` で同名リポジトリを検索。見つかった場合はエラーを表示して終了（終了コード 4）。
-2. **可視性の決定**: `--private` あり → private、なし → public
+2. **可視性の決定**: 引数 `private` あり → private、なし → public
 3. **リポジトリ作成**:
    - Public: `gh repo create <name> --public --source=. --remote=origin`
    - Private: `gh repo create <name> --private --source=. --remote=origin`

@@ -141,7 +141,7 @@ If `git remote get-url origin` succeeds:
 If no `origin` remote is configured:
 
 1. **Auth check**: Run `gh auth status`. If unauthenticated, report error with `gh auth login` instruction and exit.
-2. **Determine visibility**: `--private` present → private; otherwise → public.
+2. **Determine visibility**: `private` argument present → private; otherwise → public.
 3. **Sanitize repository name** from the current directory name:
    - Replace spaces with `-`
    - Remove characters not in `[a-zA-Z0-9._-]`
@@ -300,7 +300,7 @@ Creates a GitHub repository matching the name of the current directory. The repo
 #### Repository Creation
 
 1. **Check for duplicates**: Query `gh repo list --source` and grep for exact name match. If found, report error and exit with code 4.
-2. **Determine visibility**: `--private` present → private; otherwise → public
+2. **Determine visibility**: `private` argument present → private; otherwise → public
 3. **Create repository**:
    - Public: `gh repo create <name> --public --source=. --remote=origin`
    - Private: `gh repo create <name> --private --source=. --remote=origin`

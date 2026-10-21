@@ -75,10 +75,10 @@ Run: gh auth login
 
 #### Determine Visibility
 
-Check if `$ARGUMENTS` contains `--private`:
+Check if `$ARGUMENTS` contains the `private` argument:
 
-- `--private` present -> `visibility_flag="--private"`
-- `--private` absent -> `visibility_flag="--public"`
+- `private` present -> `visibility_flag="--private"`
+- `private` absent -> `visibility_flag="--public"`
 
 #### Get and Sanitize Folder Name
 
