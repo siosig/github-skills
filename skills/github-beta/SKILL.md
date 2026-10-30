@@ -13,10 +13,10 @@ user-invocable: true
 ## Context
 
 - Arguments: `$ARGUMENTS`
-- Current branch: !`git branch --show-current`
-- Develop branch exists: !`git branch --list develop | grep -q . && echo "yes" || echo "no"`
-- Latest production tag: !`git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1`
-- All tags: !`git tag --list | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-beta'`
+- Current branch: !`git branch --show-current 2>/dev/null || echo "(unavailable)"`
+- Develop branch exists: !`git branch --list develop 2>/dev/null | grep -q . && echo "yes" || echo "no"`
+- Latest production tag: !`git tag --sort=-version:refname 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1`
+- All tags: !`git tag --list 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-beta' || echo "(none)"`
 
 ## Task
 

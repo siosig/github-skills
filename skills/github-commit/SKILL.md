@@ -5,23 +5,36 @@ description: >
   Invoked when user calls `/github-commit`, `/github-commit all`, or `/github-commit <submodule> [all]`.
   Passing `all` stages all changes including untracked files.
   Passing a submodule path creates the commit inside that submodule instead of the current repository.
-allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git diff:*), Bash(git commit:*), Bash(git log:*), Bash(git branch:*), Bash(git submodule:*), Bash(git -C:*), Bash(head:*), Bash(grep:*), Bash(sed -n:*)
+allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git diff:*), Bash(git commit:*), Bash(git log:*), Bash(git branch:*), Bash(git submodule:*), Bash(git -C:*), Bash(head:*), Bash(grep:*), Bash(sed -n:*), Bash(git rev-parse:*)
 user-invocable: true
 ---
 
 ## Context
 
 - Arguments: `$ARGUMENTS`
-- git status: !`git status --short`
-- Diff summary (staged + unstaged): !`git diff HEAD --stat`
-- Diff body (lockfiles excluded, capped at 300 lines): !`git diff HEAD -- . ':(exclude)*.lock' ':(exclude)*-lock.*' ':(exclude)*lock.json' | head -n 300`
-- Current branch: !`git branch --show-current`
-- Recent commits: !`git log --oneline -10`
+- git status: !`git status --short 2>/dev/null || echo "(unavailable)"`
+- Diff summary (staged + unstaged): !`git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git diff HEAD --stat || echo "(unavailable)"`
+- Diff body (lockfiles excluded, capped at 300 lines): !`git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git diff HEAD -- . ':(exclude)*.lock' ':(exclude)*-lock.*' ':(exclude)*lock.json' | head -n 300 || echo "(unavailable)"`
+- Current branch: !`git branch --show-current 2>/dev/null || echo "(unavailable)"`
+- Recent commits: !`git log --oneline -10 2>/dev/null || echo "(unavailable)"`
 - Submodules: !`git submodule status 2>/dev/null || echo "(no submodules)"`
 
 ## Task
 
 Create a single git commit — either in the current repository or in a submodule, depending on `$ARGUMENTS`.
+
+### Verify Git Repository
+
+Verify the current directory is a git repository:
+
+```bash
+git rev-parse --is-inside-work-tree 2>/dev/null
+```
+
+If it fails (non-zero exit code), display and exit without running anything else:
+```
+Error: Not a git repository.
+```
 
 ### Parse Arguments
 

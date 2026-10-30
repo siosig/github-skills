@@ -14,9 +14,9 @@ user-invocable: true
 ## Context
 
 - Arguments: `$ARGUMENTS`
-- Current branch: !`git branch --show-current`
+- Current branch: !`git branch --show-current 2>/dev/null || echo "(unavailable)"`
 - Origin configuration: !`git remote get-url origin 2>/dev/null || echo "(no origin)"`
-- Upstream status: !`git status -sb`
+- Upstream status: !`git status -sb 2>/dev/null || echo "(unavailable)"`
 
 ## Task
 

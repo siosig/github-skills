@@ -13,11 +13,11 @@ user-invocable: true
 
 ## Context
 
-- Current branch: !`git branch --show-current`
-- Working tree status: !`git status -sb`
-- Local branches: !`git branch --format='%(refname:short)' | tr '\n' ' '`
-- main branch exists locally: !`git show-ref --verify --quiet refs/heads/main && echo "yes" || echo "no"`
-- master branch exists locally: !`git show-ref --verify --quiet refs/heads/master && echo "yes" || echo "no"`
+- Current branch: !`git branch --show-current 2>/dev/null || echo "(unavailable)"`
+- Working tree status: !`git status -sb 2>/dev/null || echo "(unavailable)"`
+- Local branches: !`git branch --format='%(refname:short)' 2>/dev/null | tr '\n' ' '`
+- main branch exists locally: !`git show-ref --verify --quiet refs/heads/main 2>/dev/null && echo "yes" || echo "no"`
+- master branch exists locally: !`git show-ref --verify --quiet refs/heads/master 2>/dev/null && echo "yes" || echo "no"`
 - Origin remote: !`git remote get-url origin 2>/dev/null || echo "(no origin)"`
 
 ## Task

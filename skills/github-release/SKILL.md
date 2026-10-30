@@ -12,9 +12,9 @@ user-invocable: true
 ## Context
 
 - Arguments: `$ARGUMENTS`
-- Current branch: !`git branch --show-current`
-- Latest production tag: !`git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1`
-- All tags: !`git tag --list`
+- Current branch: !`git branch --show-current 2>/dev/null || echo "(unavailable)"`
+- Latest production tag: !`git tag --sort=-version:refname 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1`
+- All tags: !`git tag --list 2>/dev/null || echo "(unavailable)"`
 
 ## Task
 

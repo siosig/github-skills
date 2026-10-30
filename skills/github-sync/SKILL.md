@@ -7,21 +7,34 @@ description: >
   Passing `commit` pulls with `--rebase --autostash`, commits the local changes, then pushes.
   Passing a submodule path synchronizes that submodule instead of the current repository.
   If pull fails, do not execute push.
-allowed-tools: Bash(git pull:*), Bash(git push:*), Bash(git branch:*), Bash(git status:*), Bash(git remote:*), Bash(git submodule:*), Bash(git -C:*), Bash(git stash:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git ls-files:*)
+allowed-tools: Bash(git pull:*), Bash(git push:*), Bash(git branch:*), Bash(git status:*), Bash(git remote:*), Bash(git submodule:*), Bash(git -C:*), Bash(git stash:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git ls-files:*), Bash(git rev-parse:*)
 user-invocable: true
 ---
 
 ## Context
 
 - Arguments: `$ARGUMENTS`
-- Current branch: !`git branch --show-current`
-- Remote configuration: !`git remote -v`
-- Current status: !`git status -sb`
+- Current branch: !`git branch --show-current 2>/dev/null || echo "(unavailable)"`
+- Remote configuration: !`git remote -v 2>/dev/null || echo "(unavailable)"`
+- Current status: !`git status -sb 2>/dev/null || echo "(unavailable)"`
 - Submodules: !`git submodule status 2>/dev/null || echo "(no submodules)"`
 
 ## Task
 
 Pull remote changes, then push local commits — either in the current repository or in a submodule, depending on `$ARGUMENTS`.
+
+### Verify Git Repository
+
+Verify the current directory is a git repository:
+
+```bash
+git rev-parse --is-inside-work-tree 2>/dev/null
+```
+
+If it fails (non-zero exit code), display and exit without running anything else:
+```
+Error: Not a git repository.
+```
 
 ### Parse Arguments
 
